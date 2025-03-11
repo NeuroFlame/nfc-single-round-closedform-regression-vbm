@@ -1,0 +1,27 @@
+FROM python:3.8-buster
+
+# Upgrade pip and setuptools
+RUN python3 -m pip install -U pip
+RUN python3 -m pip install -U setuptools
+
+# Set working directory
+WORKDIR /workspace/
+
+# Copy the requirements.txt file
+COPY ./requirements.txt /workspace/requirements.txt
+
+# Install dependencies from requirements.txt
+RUN python3 -m pip install -r /workspace/requirements.txt
+
+# Copy the rest of the application files
+COPY ./app/ /workspace/app/
+COPY ./system/entry_central.py /workspace/system/entry_central.py
+COPY ./system/entry_edge.py /workspace/system/entry_edge.py
+COPY ./system/provision/ /workspace/system/provision/
+COPY ./system/entry_provision.py /workspace/system/entry_provision.py
+
+# Set environment variables
+ENV PYTHONPATH=/workspace/app/code/
+ENV DATA_DIR=/workspace/data/
+ENV OUTPUT_DIR=/workspace/output/
+ENV PARAMETERS_FILE_PATH=/workspace/runKit/parameters.json

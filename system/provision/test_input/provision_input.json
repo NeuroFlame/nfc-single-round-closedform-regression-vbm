@@ -1,0 +1,7 @@
+{
+    "user_ids": ["user1", "user2", "user3"],
+    "computation_parameters": "{\"testKey\":\"testValue\"}",
+    "fed_learn_port": 5000,
+    "admin_port": 5001,
+    "host_identifier": "host1"
+}

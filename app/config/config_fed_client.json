@@ -1,0 +1,20 @@
+{
+  "format_version": 2,
+  "executors": [
+    {
+      "tasks": [
+        "perform_local_client_step1",
+        "perform_local_client_step2",
+        "perform_local_client_step3",
+        "perform_local_client_step4"
+      ],
+      "executor": {
+        "path": "executor.srcfr_executor.SRCFRExecutor",
+        "args": {}
+      }
+    }
+  ],
+  "task_result_filters": [],
+  "task_data_filters": [],
+  "components": []
+}

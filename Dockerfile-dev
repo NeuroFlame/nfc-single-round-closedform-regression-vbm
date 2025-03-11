@@ -1,0 +1,18 @@
+FROM python:3.8-buster
+
+RUN python3 -m pip install -U pip
+RUN python3 -m pip install -U setuptools
+RUN python3 -m pip install nvflare==2.4.0
+
+WORKDIR /workspace/
+
+# Copy the requirements.txt file
+COPY ./requirements.txt /workspace/requirements.txt
+
+# Install dependencies from requirements.txt
+RUN python3 -m pip install -r /workspace/requirements.txt
+
+ENV PYTHONPATH=/workspace/app/code/
+ENV NVFLARE_POC_WORKSPACE=/workspace/poc-workspace
+
+CMD ["/bin/bash"]
