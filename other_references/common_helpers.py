@@ -13,13 +13,13 @@ def get_downsampled_mni_and_mask(mask_info, clipped_img_affine, clipped_img_head
     clipped_img = nib.Nifti1Image(mask_info, clipped_img_affine, clipped_img_header)
 
     #TODO check how to have these asset files at aggregator at startup
-    reoriented_mni = resample_to_img(MNI_TEMPLATE, clipped_img, interpolation="linear")
+    reoriented_mni = resample_to_img(MNI_TEMPLATE, clipped_img, interpolation="linear", force_resample=True)
     downsampled_mni = resample_img(
-        reoriented_mni, target_affine=np.eye(3) * voxel_size, interpolation="linear"
+        reoriented_mni, target_affine=np.eye(3) * voxel_size, interpolation="linear", force_resample=True
     )
 
     downsampled_mask = resample_to_img(
-        clipped_img, downsampled_mni, interpolation="nearest"
+        clipped_img, downsampled_mni, interpolation="nearest", force_resample=True
     )
     return  downsampled_mni, downsampled_mask, clipped_img
 

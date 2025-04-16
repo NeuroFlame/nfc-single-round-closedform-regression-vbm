@@ -46,7 +46,7 @@ class SRCFRController(Controller):
         :param fl_ctx: Federated learning context for this run.
         """
         # Assign the aggregator to the controller
-        self.srr_aggregator = self._engine.get_component(SRR_AGGREGATOR_ID)
+        self.srr_aggregator = self._engine.get_component(SRCFR_AGGREGATOR_ID)
         # Load and set computation parameters for the sites
         self._load_and_set_computation_parameters(fl_ctx)
 

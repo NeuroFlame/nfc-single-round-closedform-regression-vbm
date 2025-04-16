@@ -128,7 +128,7 @@ def nifti_to_data(agg_result, data_path, cache_dict, cache_dir, X):
         if nib.load(input_file).header.get_zooms()[0] == voxel_size:
             image_data = nib.load(input_file).get_fdata()
         else:
-            clipped_img = resample_to_img(input_file, mni_image)
+            clipped_img = resample_to_img(input_file, mni_image, force_resample=True)
             image_data = clipped_img.get_fdata()
 
         a = []

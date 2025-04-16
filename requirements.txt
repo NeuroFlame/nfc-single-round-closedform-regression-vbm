@@ -45,3 +45,10 @@ Werkzeug==2.2.2
 zipp==3.18.1
 dominate==2.9.1
 simplejson==3.19.3
+nibabel==5.0.1
+jsonpickle==3.0.1
+#numba==0.56.4
+numba==0.58.1
+nilearn==0.10.0
+matplotlib==3.7.1
+

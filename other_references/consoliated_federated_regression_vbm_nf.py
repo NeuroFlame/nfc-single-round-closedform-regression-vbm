@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 
 import nibabel as nib
-from nilearn.image import resample_img, resample_to_img
 
 import jsonpickle
 
@@ -204,6 +203,8 @@ def perform_local_step2(agg_result, data_path, cache_dict, cache_dir, output_dir
     # Writing covariates and dependents to cache as files
     ch.saveBin(os.path.join(cache_dir, "X.npy"), biased_X)
     ch.saveBin(os.path.join(cache_dir, "y.npy"), y)
+    ch.saveBin(os.path.join(cache_dir, "XTX.npy"), XtransposeX_local)
+    ch.saveBin(os.path.join(cache_dir, "XTy.npy"), Xtransposey_local)
 
     # TODO: Writing XTX and XTy to output as files
     #ch.saveBin(os.path.join(transfer_dir, "XTX.npy"), XtransposeX_local)

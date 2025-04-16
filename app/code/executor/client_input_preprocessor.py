@@ -1,8 +1,14 @@
-import logging
+import os
 import numpy as np
 import pandas as pd
+import nibabel as nib
+import statsmodels.api as sm
+from numba import jit
+
 
 from typing import Dict, Any
+from utils.logger import _log_message
+
 
 def validate_and_get_inputs(covariates_path: str, data_path: str, computation_parameters: Dict[str, Any], log_path: str) -> bool:
     try:
@@ -12,7 +18,7 @@ def validate_and_get_inputs(covariates_path: str, data_path: str, computation_pa
         expected_covariates = list(expected_covariates_info.keys())
 
         # Load the data
-        covariates = pd.read_csv(covariates_path)
+        covariates = pd.read_csv(covariates_path, index_col="niftifile", header=0, skipinitialspace=True)
 
         # Validate covariates headers
         covariates_headers = set(covariates.columns)
@@ -23,20 +29,71 @@ def validate_and_get_inputs(covariates_path: str, data_path: str, computation_pa
 
         _log_message(f'-- Checking covariate file : {str(covariates_path)}', log_path, "info")
         X = convert_data_to_given_type(covariates, expected_covariates_info, log_path)
-        #dummy encoding categorical variables
-        X = pd.get_dummies(X, drop_first=True)
+        X = convert_bool_type_to_object(X, expected_covariates_info, log_path)
 
-        _log_message(f'-- Checking dependents file : {str(data_path)}', log_path, "info")
+        #dummy encoding categorical variables
+        #X = pd.get_dummies(X, drop_first=True)
+
+        _log_message(f'-- Checking dependent nifti files in : {str(data_path)}', log_path, "info")
+
         #TODO .. CHECK IF y exists for all X
-        y=None
+        # Checks for existence of files and if they don't delete row
+        # Do not load nii files into Y at this step, we need to first compute average_mask in a decentralized way and
+        # then load the nii files based on the average_mask
+        missing_dependent_files=[]
+        invalid_dependent_data_files = []
+
+        for file_name in X.index:
+            if not os.path.isfile(os.path.join(data_path, file_name)):
+                missing_dependent_files.append(file_name)
+                X.drop(file_name, inplace=True)
+            else:
+                image_data = nib.load(os.path.join(data_path, file_name)).dataobj[:]
+                if (np.all(np.isnan(image_data)) or np.count_nonzero(image_data) == 0 or image_data.size == 0 ):
+                    invalid_dependent_data_files.append(file_name)
+                    X.drop(index=file_name, inplace=True)
+
+        if len(missing_dependent_files) > 0:
+            _log_message(f'-- Ignored following subjects with missing files: '
+                         f'{str(missing_dependent_files)}', log_path, "info")
+
+        if len(invalid_dependent_data_files) > 0:
+            _log_message(f'-- Ignored following subjects with invalid data in nifti files: '
+                         f'{str(invalid_dependent_data_files)}', log_path, "info")
+
+        # Raise Exception if none of the files are found
+        if X.index.empty:
+            raise Exception(f"Could not find any .nii files specified in the covariates csv. "
+                            f"Looked in datapath: {data_path}")
+
         # If all checks pass
-        return True, X, y
+        return True, X
 
     except Exception as e:
         error_message = f"An error occurred during validation: {str(e)}"
         _log_message(error_message, log_path, "error")
-        return False, None, None
+        return False, None
 
+
+def convert_bool_type_to_object(data_df : pd.DataFrame, column_info : dict, log_path : str):
+    # All the potential
+    try:
+        # convert bool to categorical as soon as possible
+        for column_name, column_datatype in column_info.items():
+            if column_datatype.strip().lower() == "bool":
+                data_df[column_name] = data_df[column_name].astype('object')
+
+        # convert contents of object columns to lowercase
+        for column_name, column_datatype in column_info.items():
+            if column_datatype.strip().lower() == "bool":
+                data_df[column_name] = data_df[column_name].astype("str").str.lower()
+
+    except Exception as e:
+        error_message = f"An error occurred while converting bool to object type: {str(e)}"
+        _log_message(error_message, log_path, "error")
+        raise (e)
+
+    return data_df
 
 
 def convert_data_to_given_type(data_df : pd.DataFrame, column_info : dict, log_path : str):
@@ -124,30 +181,106 @@ def _validate_data_datatypes(data_df : pd.DataFrame, column_info : dict, log_pat
     return list(all_rows_to_ignore)
 
 
-def _log_message(message: str, log_path: str, message_level : str ) -> None:
-    """
-    Logs details to log file.
+def perform_encoding(agg_result, data_f):
+    """Perform encoding of various categorical variables"""
+    cols_categorical = [col for col in data_f if data_f[col].dtype == object]
+    cols_mono = [col for col in data_f if data_f[col].nunique() == 1]
 
-    Args:
-        log_path: path of the log file
-        message_level: "error" or "info". Default level is info
+    # Dropping columns with unique values
+    data_f = data_f.drop(columns=cols_mono)
 
-    Returns:
+    # Creating dummies on non-unique categorical variables
+    cols_nodrop = [x for x in cols_categorical if x not in cols_mono]
+    default_col_sortedval_dict = _get_default_dummy_encoding_columns(data_f)
+    data_f = pd.get_dummies(data_f, columns=cols_nodrop, drop_first=False)
+    data_f = _adjust_dummy_encoding_columns( data_f, agg_result["reference_columns"],
+                                           default_col_sortedval_dict)
 
-    """
-    import datetime
-    time_prefix = datetime.datetime.now().astimezone().strftime("%m/%d/%Y %H:%M:%S") + ' : '
-    message = time_prefix + message
+    data_f = data_f.dropna(axis=0, how="any")
+    data_f = sm.add_constant(data_f, has_constant="add")
 
-    if message_level.strip().lower() == "error":
-        logging.error(message)
-    else:
-        logging.info(message)
+    return data_f
 
-    try:
-        with open(log_path, 'a') as f:
-            f.write(f"{message}\n")
-            f.flush()  # Ensure data is written to the file
-    except IOError as e:
-        logging.error(f"Failed to write to log file {log_path}: {e}")
+
+def _get_default_dummy_encoding_columns(df):
+    """Returns a dictionary of the first sorted unique-value of all categorical variables."""
+
+    default_col_sortedval_dict={}
+    categorical_cols=df.select_dtypes(include=['object']).columns.tolist()
+    for col_name in categorical_cols:
+        default_col_sortedval_dict[col_name]=sorted(df[col_name].unique())[0]
+
+    return default_col_sortedval_dict
+
+def _adjust_dummy_encoding_columns(df, ref_col_val_dict, data_def_col_val_dict):
+    """ If a column is listed in reference_columns in the input for dummy encoding,
+     then the values in this dict is used the reference column from the dataframe,
+     otherwise the default sorted first value is used for a column."""
+
+    for col_name in data_def_col_val_dict.keys():
+        ref_col_val =col_name +"_"+ ref_col_val_dict.get(col_name, data_def_col_val_dict[col_name])
+        df.drop(ref_col_val, inplace=True, axis=1)
+
+    return df
+
+def mean_and_len_y(y):
+    """Caculate the mean and length of each y vector"""
+    meanY_vector = y.mean(axis=0)
+    #    lenY_vector = y.count(axis=0)
+    lenY_vector = np.count_nonzero(~np.isnan(y), axis=0)
+
+    return meanY_vector, lenY_vector
+
+def add_site_covariates(agg_result, X):
+    import simplejson as json
+
+    """Add site covariates based on information gathered from all sites"""
+    all_sites = agg_result["covar_keys"]
+    glob_uniq_ct = agg_result["global_unique_count"]
+    reference_col_dict= agg_result["reference_columns"]
+
+    all_sites = json.loads(all_sites)
+
+    default_col_sortedval_dict = _get_default_dummy_encoding_columns(X)
+
+    for key, val in glob_uniq_ct.items():
+        if val == 1:
+            X.drop(columns=key, inplace=True)
+            default_col_sortedval_dict.pop(key)
+        else:
+            default_col_sortedval_dict[key] = sorted(all_sites[key])[0]
+            covar_dict = pd.get_dummies(all_sites[key], prefix=key, drop_first=False)
+            X = _merging_globals(X, covar_dict, all_sites, key)
+
+    X = _adjust_dummy_encoding_columns(X, reference_col_dict, default_col_sortedval_dict)
+    X = X.dropna(axis=0, how="any")
+    biased_X = sm.add_constant(X, has_constant="add")
+
+    return biased_X
+
+def _merging_globals(X, site_covar_dict, dict_, key):
+    """Merge the actual data frame with the created dummy matrix"""
+    site_covar_dict.rename(index=dict(enumerate(dict_[key])), inplace=True)
+    site_covar_dict.index.name = key
+    site_covar_dict.reset_index(level=0, inplace=True)
+    X = X.merge(site_covar_dict, on=key, how="left")
+    X = X.drop(columns=key)
+
+    return X
+
+
+def _get_default_dummy_encoding_columns(df):
+    """Returns a dictionary of the first sorted unique-value of all categorical variables."""
+
+    default_col_sortedval_dict={}
+    categorical_cols=df.select_dtypes(include=['object']).columns.tolist()
+    for col_name in categorical_cols:
+        default_col_sortedval_dict[col_name]=sorted(df[col_name].unique())[0]
+
+    return default_col_sortedval_dict
+
+@jit(nopython=True)
+def multiply(array_a, array_b):
+    """Multiplies two matrices"""
+    return array_a.T @ array_b
 
