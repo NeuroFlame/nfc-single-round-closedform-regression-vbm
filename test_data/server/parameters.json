@@ -4,8 +4,9 @@
         "isControl":"bool",
         "age":"float"
     },
-    "lambda": 1,
-    "threshold": 0.2,
-    "voxel_size":  4,
-    "reference_columns": { "site": "IA" }
+    "Lambda": 1,
+    "Threshold": 0.2,
+    "VoxelSize":  4,
+    "ReferenceColumns": { "site": "IA" },
+    "IgnoreSubjectsWithInvalidData" : false
 }

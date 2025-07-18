@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import glob
 from numba import jit
-
+from . import client_constants
 
 from utils.data_transfer import *
 #from ..utils.data_transfer import *
@@ -21,12 +21,13 @@ def perform_client_step1(covariates_path, data_path, computation_parameters, log
     categorical_dict = {col: list(covariates_X[col].unique()) for col in covariates_X.select_dtypes(include=object)}
     # converting all the values of the reference columns to lowercase as
     # all the covariate values are converted to lowercase while parsing
-    reference_dict = dict((k, v.lower()) for k, v in computation_parameters["reference_columns"].items());
+    reference_dict = dict((k, v.lower()) for k, v in computation_parameters.get("ReferenceColumns",
+                                                                client_constants.DEFAULT_ReferenceColumns).items());
 
     # Handle dependent nifti files
-    threshold = computation_parameters["threshold"]
-    voxel_size = computation_parameters["voxel_size"]
-    lamb = computation_parameters["lambda"]
+    threshold = computation_parameters.get("Threshold", client_constants.DEFAULT_Threshold)
+    voxel_size = computation_parameters.get("VoxelSize", client_constants.DEFAULT_VoxelSize)
+    lamb = computation_parameters.get("Lambda", client_constants.DEFAULT_Lambda)
 
     # TODO: voxel size cannot be 0 (check how to handle this)
     if voxel_size == 0:

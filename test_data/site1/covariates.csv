@@ -1,4 +1,4 @@
-niftifile, site, isControl, age, sex
+niftifilename, site, isControl, age, sex
 M02108714_swc1t1avg.nii, IA,FALSE,28, M
 M02110676_swc1t1avg.nii, IA,FALSE,39, M
 M02111314_swc1t1avg.nii, IA,FALSE,23, M

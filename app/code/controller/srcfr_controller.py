@@ -17,8 +17,10 @@ class SRCFRController(Controller):
     ### Framework-Specific Setup: No modification needed ###
     def __init__(
             self,
-            min_clients: int = 2,
-            wait_time_after_min_received: int = 10,
+            min_clients: int = 0,
+            # Should be 0 to make sure that the broadcast waits for all the clients to finish before going to the next task
+            wait_time_after_min_received: int = 1000,
+            # Increasing wait time as min_clients==0 is not working in 2.4.0 flare version
             task_timeout: int = 0,
     ):
         """
