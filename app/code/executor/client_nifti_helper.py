@@ -7,7 +7,7 @@ from nilearn.image import resample_to_img
 from nilearn import plotting
 
 
-def average_nifti(covariates_X, data_path, transfer_dir:str):
+def average_nifti(covariates_X, data_path, transfer_dir: str):
     """Reads in all the nifti images and calculates their average"""
     appended_data = 0
     for image in covariates_X.index:
@@ -25,6 +25,7 @@ def average_nifti(covariates_X, data_path, transfer_dir:str):
 
     return output_file_name
 
+
 def nifti_to_data(data_path, cache_dict, X, mask_file_name, downsampled_mni_file_name):
     """Read nifti files as matrices"""
     voxel_size = cache_dict["voxel_size"]
@@ -35,7 +36,7 @@ def nifti_to_data(data_path, cache_dict, X, mask_file_name, downsampled_mni_file
         except FileNotFoundError:
             raise Exception("Missing Mask file at " + mask_file_name)
 
-    except :
+    except:
         raise Exception("Missing Mask ")
 
     y = np.zeros((len(X.index), np.count_nonzero(mask_data)), dtype="f8")
@@ -83,7 +84,7 @@ def print_beta_images(cache_dict, cache_dir, output_dir, avg_beta_vector, covar_
         )
 
 
-def print_pvals(cache_dict, cache_dir, output_dir, ps_global, ts_global, covar_labels ):
+def print_pvals(cache_dict, cache_dir, output_dir, ps_global, ts_global, covar_labels):
     """Print regression coefficients' p-values as nifti files."""
     p_df = pd.DataFrame(ps_global, columns=covar_labels)
     t_df = pd.DataFrame(ts_global, columns=covar_labels)
@@ -96,7 +97,7 @@ def print_pvals(cache_dict, cache_dir, output_dir, ps_global, ts_global, covar_l
     for column in p_df:
         new_data = np.zeros(mask.shape)
         new_data[mask.get_fdata() > 0] = (
-            -1 * np.log10(p_df[column]) * np.sign(t_df[column])
+                -1 * np.log10(p_df[column]) * np.sign(t_df[column])
         )
 
         image_string = "pval_" + str(column)

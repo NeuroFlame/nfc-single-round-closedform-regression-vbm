@@ -6,4 +6,3 @@ TASK_NAME_LOCAL_CLIENT_STEP4 = "perform_local_client_step4"
 
 # Component IDs
 SRCFR_AGGREGATOR_ID = "srcfr_aggregator"
-

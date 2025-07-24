@@ -7,9 +7,10 @@ from numba import jit
 from . import client_constants
 
 from utils.data_transfer import *
-#from ..utils.data_transfer import *
+# from ..utils.data_transfer import *
 from . import client_input_preprocessor as cip
 from . import client_nifti_helper as cnh
+
 
 def perform_client_step1(covariates_path, data_path, computation_parameters, log_path, cache_dict, cache_dir):
     # Validate the run inputs (covariates, dependent data, and parameters)
@@ -22,7 +23,7 @@ def perform_client_step1(covariates_path, data_path, computation_parameters, log
     # converting all the values of the reference columns to lowercase as
     # all the covariate values are converted to lowercase while parsing
     reference_dict = dict((k, v.lower()) for k, v in computation_parameters.get("ReferenceColumns",
-                                                                client_constants.DEFAULT_ReferenceColumns).items());
+                                                                                client_constants.DEFAULT_ReferenceColumns).items());
 
     # Handle dependent nifti files
     threshold = computation_parameters.get("Threshold", client_constants.DEFAULT_Threshold)
@@ -33,13 +34,13 @@ def perform_client_step1(covariates_path, data_path, computation_parameters, log
     if voxel_size == 0:
         voxel_size = 1
 
-    #create a folder inside cache_dir that holds files to transfer
+    # create a folder inside cache_dir that holds files to transfer
     data_transfer_dir = os.path.join(cache_dir, "transfer_client_step1")
     os.makedirs(data_transfer_dir, exist_ok=True)
 
     average_dependent_filename = cnh.average_nifti(covariates_X, data_path, data_transfer_dir)
 
-    #Output
+    # Output
     output_dict = {
         "categorical_dict": categorical_dict,
         "reference_columns": reference_dict,
@@ -52,10 +53,11 @@ def perform_client_step1(covariates_path, data_path, computation_parameters, log
                         "lambda": lamb}
 
     results = {"output": output_dict, "cache": local_cache_dict,
-               "transfer_files": {"average_nifti" : average_dependent_filename}
+               "transfer_files": {"average_nifti": average_dependent_filename}
                }
 
     return results
+
 
 def perform_local_step2(agg_result, data_path, log_path, cache_dict, cache_dir):
     # save mask and downsampled mni in cache
@@ -67,19 +69,19 @@ def perform_local_step2(agg_result, data_path, log_path, cache_dict, cache_dir):
 
     X = pd.read_json(cache_dict["X"], orient='split')
 
-
     """The second function in the local computation chain"""
     regularizer_l2 = cache_dict["lambda"]
 
     # Local Statistics
-    #y = cnh.nifti_to_data(agg_result, data_path, cache_dict, cache_dir, X, mask_file_name,
+    # y = cnh.nifti_to_data(agg_result, data_path, cache_dict, cache_dir, X, mask_file_name,
     #                       downsampled_mni_file_name)
     y = cnh.nifti_to_data(data_path, cache_dict, X, mask_file_name, downsampled_mni_file_name)
 
     encoded_X = cip.perform_encoding(agg_result, X)
 
     meanY_vector, lenY_vector = cip.mean_and_len_y(y)
-    local_beta_vector, local_pvalues, local_tvalues, local_rsquared, local_X_labels = _local_stats_to_dict_numba(encoded_X, y)
+    local_beta_vector, local_pvalues, local_tvalues, local_rsquared, local_X_labels = _local_stats_to_dict_numba(
+        encoded_X, y)
 
     # Global Statistics
     augmented_X = cip.add_site_covariates(agg_result, X)
@@ -93,29 +95,29 @@ def perform_local_step2(agg_result, data_path, log_path, cache_dict, cache_dir):
     save_binary(os.path.join(cache_dir, "X.npy"), biased_X)
     save_binary(os.path.join(cache_dir, "y.npy"), y)
 
-    x_transpose_x_file_name=os.path.join(cache_dir, "XTX.npy")
+    x_transpose_x_file_name = os.path.join(cache_dir, "XTX.npy")
     save_binary(x_transpose_x_file_name, XtransposeX_local)
 
-    x_transpose_y_file_name=os.path.join(cache_dir, "XTy.npy")
+    x_transpose_y_file_name = os.path.join(cache_dir, "XTy.npy")
     save_binary(x_transpose_y_file_name, Xtransposey_local)
 
     output_dict = {
         "mean_y_local": meanY_vector.tolist(),
         "count_local": lenY_vector.tolist(),
-        #"local_stats_list": local_stats_list,
+        # "local_stats_list": local_stats_list,
         "X_labels": X_labels,
         "lambda": regularizer_l2,
     }
     cache_dict = {"covariates": "X.npy",
                   "dependents": "y.npy",
                   "mask_file_name": mask_file_name,
-                  "downsampled_mni_file_name":downsampled_mni_file_name,
+                  "downsampled_mni_file_name": downsampled_mni_file_name,
                   "reference_columns": agg_result["reference_columns"],
                   "local_beta_vector": local_beta_vector.tolist(),
                   "local_pvalues": local_pvalues.tolist(),
-                  "local_tvalues":local_tvalues.tolist(),
-                  "local_rsquared":local_rsquared.tolist(),
-                  "local_X_labels":local_X_labels
+                  "local_tvalues": local_tvalues.tolist(),
+                  "local_rsquared": local_rsquared.tolist(),
+                  "local_X_labels": local_X_labels
                   }
     result = {
         "output": output_dict,
@@ -129,7 +131,6 @@ def perform_local_step2(agg_result, data_path, log_path, cache_dict, cache_dir):
 
 
 def perform_local_step3(agg_result, log_path, cache_dict, cache_dir):
-
     # save avg_beta_vector and mean_y_global files from aggregator in cache_dir
     avg_beta_vector_file_name = os.path.join(cache_dir, "avg_beta_vector.npy")
     bytes_to_file(avg_beta_vector_file_name, agg_result["avg_beta_vector"])
@@ -137,12 +138,11 @@ def perform_local_step3(agg_result, log_path, cache_dict, cache_dir):
     mean_y_global_file_name = os.path.join(cache_dir, "mean_y_global.npy")
     bytes_to_file(mean_y_global_file_name, agg_result["mean_y_global"])
 
-
     biased_X = load_binary(os.path.join(cache_dir, cache_dict["covariates"]))
     y = load_binary(os.path.join(cache_dir, cache_dict["dependents"]))
 
     avg_beta_vector = load_binary(avg_beta_vector_file_name)
-    mean_y_global =load_binary(mean_y_global_file_name)
+    mean_y_global = load_binary(mean_y_global_file_name)
 
     varX_matrix_local = cip.multiply(biased_X, biased_X)
 
@@ -159,10 +159,10 @@ def perform_local_step3(agg_result, log_path, cache_dict, cache_dir):
                   }
     result = {"output": output_dict, "cache": cache_dict}
 
-    return  result
+    return result
+
 
 def perform_local_step4(agg_result, log_path, cache_dict, cache_dir, output_dir):
-
     avg_beta_vector = load_binary(cache_dict["avg_beta_vector_file_name"])
     r_squared_global = np.asarray(agg_result["r_squared_global"])
     ts_global = np.asarray(agg_result["ts_global"])
@@ -184,17 +184,17 @@ def perform_local_step4(agg_result, log_path, cache_dict, cache_dir, output_dir)
 
     cnh.print_pvals(cache_dict, cache_dir, local_output_dir, np.asarray(cache_dict["local_pvalues"]).T,
                     np.asarray(cache_dict["local_tvalues"]).T, local_X_labels)
-    cnh.print_beta_images(cache_dict,cache_dir, local_output_dir, np.asarray(cache_dict["local_beta_vector"]),
+    cnh.print_beta_images(cache_dict, cache_dir, local_output_dir, np.asarray(cache_dict["local_beta_vector"]),
                           local_X_labels)
-    cnh.print_r2_image(cache_dict,cache_dir, local_output_dir, np.asarray(cache_dict["local_rsquared"]))
+    cnh.print_r2_image(cache_dict, cache_dir, local_output_dir, np.asarray(cache_dict["local_rsquared"]))
 
     # Gather local and global png files (for display in UI)
     results_dict = {
         "local_stats": glob.glob(f'{local_output_dir}/*.png'),
         "global_stats": glob.glob(f'{global_output_dir}/*.png'),
-                }
+    }
 
-    result = {"output": {"html" : _persist_html_from_results(results_dict, os.path.join(output_dir, 'index.html'))},
+    result = {"output": {"html": _persist_html_from_results(results_dict, os.path.join(output_dir, 'index.html'))},
               "cache": {}}
 
     return result
@@ -269,12 +269,13 @@ def _persist_html_from_results(results_dict, output_file_name):
         for result_label in [global_stats_label, local_stats_label]:
             tags.h2(result_label)
             for result_img in results_dict.get(result_label, []):
-                site_name_prefix = os.path.basename(result_img.split(f'/{local_stats_label}')[0])+' : ' if result_label == local_stats_label else ''
-                tags.h3(site_name_prefix + result_label + ' - ' +os.path.basename(result_img))
+                site_name_prefix = os.path.basename(
+                    result_img.split(f'/{local_stats_label}')[0]) + ' : ' if result_label == local_stats_label else ''
+                tags.h3(site_name_prefix + result_label + ' - ' + os.path.basename(result_img))
                 tags.img(src=result_img[result_img.index(result_label):])
                 tags.hr()
 
-    html_content= str(doc)
+    html_content = str(doc)
 
     with open(output_file_name, 'w') as f:
         f.write(html_content)
@@ -342,6 +343,7 @@ def _local_stats_to_dict_numba(X, y):
     beta_vector = params.T
 
     return beta_vector, pvalues, tvalues, rsquared, X_labels
+
 
 @jit(nopython=True)
 def _stats_calculation(X, y, avg_beta_vec, mean_y_global):

@@ -25,10 +25,6 @@ The computation requires the user to provide a directory path containing "covari
 
 Below are the specifications for the parameters:
 
-DEFAULT_Threshold = 0.2
-DEFAULT_VoxelSize = 4
-DEFAULT_ReferenceColumns = {}
-
 | Variable Name                | Type    | Description                                                                                                                                                                        | Allowed Options           | Default | Required |
 |------------------------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------|---------|---------|
 | Covariates                   | dict    | Provide all the covariates that need to be considered for regression along with their type as shown in the example above.                                                          | dict                      | -       | ✅ Yes   |
@@ -63,7 +59,7 @@ niftifilename, <Covariate_1>,<Covariate_2>,...,<Covariate_N>
 
 The key steps of the algorithm include:
 
-1. **Local Ridge Regression (per site)**:
+1. **Local Regression (per site)**:
    - Each site runs regression on its local data, standardizing the covariates (X) and regressing against the voxels (Y).  It computes XtX and XtY matrices and send it to remote to compute aggregated model.
    - Statistical metrics (e.g., t-values, p-values, R-squared) are calculated using an ordinary least squares (OLS) ridge regression model to provide interpretability.
 

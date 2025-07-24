@@ -2,6 +2,7 @@ import os
 import numpy as np
 import logging
 
+
 def file_to_bytes(file_path: str) -> bytes:
     """Reads any file as bytes."""
     try:
@@ -11,12 +12,11 @@ def file_to_bytes(file_path: str) -> bytes:
         logging.error(f"File not found: {file_path}")
         return b""  # Return empty bytes to avoid crashes
 
+
 def bytes_to_file(image_file_path: str, file_data: bytes):
     # Save the received image bytes to a file
     with open(image_file_path, "wb") as f:
         f.write(file_data)
-
-
 
 
 def save_binary(path, arr):
@@ -50,11 +50,12 @@ def compress(transfer_dir):
         zf.write(dirname)
         for filename in files:
             zf.write(os.path.join(dirname, filename))
-    #zf.close()
+    # zf.close()
     return zf
 
+
 def save_compressed_file(transfer_dir):
-    #TODO code this correctly
+    # TODO code this correctly
     import os
     import zipfile
 
@@ -63,5 +64,5 @@ def save_compressed_file(transfer_dir):
         zf.write(dirname)
         for filename in files:
             zf.write(os.path.join(dirname, filename))
-    #zf.close()
+    # zf.close()
     return zf

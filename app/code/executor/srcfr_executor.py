@@ -16,6 +16,7 @@ from utils.data_transfer import *
 from . import client_executor_methods as cem
 from . import client_cache_store as ccs
 
+
 class SRCFRExecutor(Executor):
     def __init__(self):
         """
@@ -24,11 +25,11 @@ class SRCFRExecutor(Executor):
         logging.info("SrrExecutor initialized")
 
     def execute(
-        self,
-        task_name: str,
-        shareable: Shareable,
-        fl_ctx: FLContext,
-        abort_signal: Signal,
+            self,
+            task_name: str,
+            shareable: Shareable,
+            fl_ctx: FLContext,
+            abort_signal: Signal,
     ) -> Shareable:
         """
         Main execution entry point. Routes tasks to specific methods based on the task name.
@@ -47,48 +48,55 @@ class SRCFRExecutor(Executor):
         outgoing_shareable = Shareable()
 
         if task_name == TASK_NAME_LOCAL_CLIENT_STEP1:
-            client_result = self._do_task_perform_client_step1(shareable, fl_ctx, abort_signal, cache_store.get_cache_dict(),
+            client_result = self._do_task_perform_client_step1(shareable, fl_ctx, abort_signal,
+                                                               cache_store.get_cache_dict(),
                                                                cache_store.get_cache_dir())
             cache_store.update_cache_dict(client_result['cache'])
             outgoing_shareable['result'] = client_result['output']
-            outgoing_shareable["transfer_average_nifti"] = file_to_bytes(client_result['transfer_files']['average_nifti'])
+            outgoing_shareable["transfer_average_nifti"] = file_to_bytes(
+                client_result['transfer_files']['average_nifti'])
 
 
         elif task_name == TASK_NAME_LOCAL_CLIENT_STEP2:
-            client_result = self._do_task_perform_client_step2(shareable, fl_ctx, abort_signal, cache_store.get_cache_dict(),
+            client_result = self._do_task_perform_client_step2(shareable, fl_ctx, abort_signal,
+                                                               cache_store.get_cache_dict(),
                                                                cache_store.get_cache_dir())
             cache_store.update_cache_dict(client_result['cache'])
             outgoing_shareable['result'] = client_result['output']
-            outgoing_shareable["transfer_xTx"] = file_to_bytes(client_result['transfer_files']['x_transpose_x_file_name'])
-            outgoing_shareable["transfer_xTy"] = file_to_bytes(client_result['transfer_files']['x_transpose_y_file_name'])
+            outgoing_shareable["transfer_xTx"] = file_to_bytes(
+                client_result['transfer_files']['x_transpose_x_file_name'])
+            outgoing_shareable["transfer_xTy"] = file_to_bytes(
+                client_result['transfer_files']['x_transpose_y_file_name'])
 
         elif task_name == TASK_NAME_LOCAL_CLIENT_STEP3:
-            client_result = self._do_task_perform_client_step3(shareable, fl_ctx, abort_signal, cache_store.get_cache_dict(),
+            client_result = self._do_task_perform_client_step3(shareable, fl_ctx, abort_signal,
+                                                               cache_store.get_cache_dict(),
                                                                cache_store.get_cache_dir())
             cache_store.update_cache_dict(client_result['cache'])
             outgoing_shareable['result'] = client_result['output']
 
         elif task_name == TASK_NAME_LOCAL_CLIENT_STEP4:
-            client_result = self._do_task_perform_client_step4(shareable, fl_ctx, abort_signal, cache_store.get_cache_dict(),
+            client_result = self._do_task_perform_client_step4(shareable, fl_ctx, abort_signal,
+                                                               cache_store.get_cache_dict(),
                                                                cache_store.get_cache_dir())
             cache_store.remove_cache()
-            #Sending empty sharable object as result
+            # Sending empty sharable object as result
 
         else:
             # Raise an error if the task name is unknown
             raise ValueError(f"Unknown task name: {task_name}")
 
-        #return client_result['output']
+        # return client_result['output']
 
         return outgoing_shareable
 
     def _do_task_perform_client_step1(
-        self,
-        shareable: Shareable,
-        fl_ctx: FLContext,
-        abort_signal: Signal,
-        cache_dict:Dict,
-        cache_dir:str
+            self,
+            shareable: Shareable,
+            fl_ctx: FLContext,
+            abort_signal: Signal,
+            cache_dict: Dict,
+            cache_dir: str
     ) -> Dict:
         """
         Perform the ridge regression on the merged site data.
@@ -114,12 +122,12 @@ class SRCFRExecutor(Executor):
         return result
 
     def _do_task_perform_client_step2(
-        self,
-        shareable: Shareable,
-        fl_ctx: FLContext,
-        abort_signal: Signal,
-        cache_dict:Dict,
-        cache_dir:str
+            self,
+            shareable: Shareable,
+            fl_ctx: FLContext,
+            abort_signal: Signal,
+            cache_dict: Dict,
+            cache_dir: str
     ) -> Dict:
         """
         Receives the global regression parameters, uses these global regression model on local data
@@ -138,17 +146,15 @@ class SRCFRExecutor(Executor):
         # Perform ridge regression using the specified covariates and dependent variables
         result = cem.perform_local_step2(agg_result, data_path, log_path, cache_dict, cache_dir)
 
-
         return result
 
-
     def _do_task_perform_client_step3(
-        self,
-        shareable: Shareable,
-        fl_ctx: FLContext,
-        abort_signal: Signal,
-        cache_dict:Dict,
-        cache_dir:str
+            self,
+            shareable: Shareable,
+            fl_ctx: FLContext,
+            abort_signal: Signal,
+            cache_dict: Dict,
+            cache_dir: str
     ) -> Dict:
         """
         Receives the global regression parameters, uses these global regression model on local data
@@ -169,12 +175,12 @@ class SRCFRExecutor(Executor):
         return result
 
     def _do_task_perform_client_step4(
-        self,
-        shareable: Shareable,
-        fl_ctx: FLContext,
-        abort_signal: Signal,
-        cache_dict:Dict,
-        cache_dir:str
+            self,
+            shareable: Shareable,
+            fl_ctx: FLContext,
+            abort_signal: Signal,
+            cache_dict: Dict,
+            cache_dir: str
     ) -> Dict:
         """
         Save the global regression results to a file.
@@ -195,4 +201,3 @@ class SRCFRExecutor(Executor):
         result = cem.perform_local_step4(agg_result, log_path, cache_dict, cache_dir, output_dir)
 
         return result
-

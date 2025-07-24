@@ -5,9 +5,10 @@ import scipy as sp
 import jsonpickle
 
 from utils.data_transfer import *
-#from ..utils.data_transfer import *
 
-MNI_TEMPLATE="/workspace/app/code/assets/MNI152_T1_1mm_brain.nii"
+# from ..utils.data_transfer import *
+
+MNI_TEMPLATE = "/workspace/app/code/assets/MNI152_T1_1mm_brain.nii"
 
 
 def perform_remote_step1(site_results, agg_cache_dict, agg_cache_dir):
@@ -21,17 +22,16 @@ def perform_remote_step1(site_results, agg_cache_dict, agg_cache_dir):
 
         return keys, count
 
-
     """The first function in the remote computation chain"""
     output_mask_file_name, output_downsampled_mni_filename = _calculate_mask(site_results, agg_cache_dir)
     site_info = {site: site_results[site]["categorical_dict"] for site in site_results.keys()}
     ref_cols = {site: site_results[site]["reference_columns"] for site in site_results.keys()}
 
-    reference_dict=next(iter(ref_cols.values()))
+    reference_dict = next(iter(ref_cols.values()))
     # assert that reference columns/values for dummy encoding are same across all the sites for
     # the correctness of the decentralized regression. This is always true for coinstac GUI computation.
-    assert all(value == reference_dict  for value in ref_cols.values()), \
-        "Reference values for dummy encoding are not same across all the sites "+ str(ref_cols)
+    assert all(value == reference_dict for value in ref_cols.values()), \
+        "Reference values for dummy encoding are not same across all the sites " + str(ref_cols)
 
     df = pd.DataFrame.from_dict(site_info)
     covar_keys, unique_count = return_uniques_and_counts(df)
@@ -42,7 +42,7 @@ def perform_remote_step1(site_results, agg_cache_dict, agg_cache_dir):
             "reference_columns": reference_dict,
             "global_unique_count": unique_count
         },
-        "cache": {} ,
+        "cache": {},
         "transfer_files": {"mask_file": output_mask_file_name,
                            "downsampled_mni": output_downsampled_mni_filename}
     }
@@ -50,18 +50,16 @@ def perform_remote_step1(site_results, agg_cache_dict, agg_cache_dir):
     return results
 
 
-
 def perform_remote_step2(site_results, agg_cache_dict, agg_cache_dir):
-
     """The second function in the local computation chain"""
     site_ids = sorted(site_results.keys())
     user_id = site_ids[0]
 
     X_labels = site_results[user_id]["X_labels"]
 
-    #all_local_stats_dicts = [
+    # all_local_stats_dicts = [
     #    site_results[site]["local_stats_list"] for site in site_results
-    #]
+    # ]
 
     beta_vector_0 = sum([load_binary(site_results[site]["x_transpose_x_file_name"]) for site in site_ids])
     beta_vector_1 = sum([load_binary(site_results[site]["x_transpose_y_file_name"]) for site in site_ids])
@@ -72,7 +70,7 @@ def perform_remote_step2(site_results, agg_cache_dict, agg_cache_dir):
         raise Exception("Unequal lambdas at local sites")
 
     try:
-        #Add lambda's
+        # Add lambda's
         beta_vector_0 = beta_vector_0 + np.unique(all_lambdas) * np.eye(beta_vector_0.shape[0])
         avg_beta_vector = np.transpose(np.dot(np.linalg.inv(beta_vector_0), beta_vector_1))
     except np.linalg.LinAlgError:
@@ -98,7 +96,7 @@ def perform_remote_step2(site_results, agg_cache_dict, agg_cache_dir):
         "avg_beta_vector": "avg_beta_vector.npy",
         "dof_global": dof_global.tolist(),
         "X_labels": X_labels,
-        #"local_stats_dict": all_local_stats_dicts,
+        # "local_stats_dict": all_local_stats_dicts,
     }
     results = {'output': {}, 'cache': cache_dict,
                "transfer_files": {"avg_beta_vector": avg_beta_vector_file_name,
@@ -106,6 +104,7 @@ def perform_remote_step2(site_results, agg_cache_dict, agg_cache_dir):
                }
 
     return results
+
 
 def perform_remote_step3(site_results, agg_cache_dict, agg_cache_dir):
     from scipy import stats
@@ -139,16 +138,15 @@ def perform_remote_step3(site_results, agg_cache_dict, agg_cache_dir):
     ps_global = [2 * stats.t.sf(np.abs(t), df) for t, df in zip(ts_global, dof_global)]
 
     output_dict = {
-    "r_squared_global": r_squared_global.tolist(),
-    "MSE" : MSE.tolist(),
-    "ts_global" : ts_global.tolist(),
-    "ps_global" : ps_global,
-    "X_labels": X_labels
+        "r_squared_global": r_squared_global.tolist(),
+        "MSE": MSE.tolist(),
+        "ts_global": ts_global.tolist(),
+        "ps_global": ps_global,
+        "X_labels": X_labels
     }
     results = {"output": output_dict, "cache": {}}
 
     return results
-
 
 
 def _calculate_mask(site_results, agg_cache_dir):
@@ -165,7 +163,7 @@ def _calculate_mask(site_results, agg_cache_dir):
         else:
             avg_of_all = np.asarray(nib.load(results["transfer_average_nifti"]).get_fdata())
 
-    avg_of_all = avg_of_all/num_sites
+    avg_of_all = avg_of_all / num_sites
 
     # Threshold binarizer
     user_id = site_ids[0]
@@ -175,10 +173,10 @@ def _calculate_mask(site_results, agg_cache_dir):
     mask_info = avg_of_all > threshold
 
     user_id = site_ids[0]
-    principal_image =nib.load(site_results[user_id]["transfer_average_nifti"])
+    principal_image = nib.load(site_results[user_id]["transfer_average_nifti"])
     header, affine = principal_image.header, principal_image.affine
 
-    #downsampled_mni, downsampled_mask, clipped_img = ch.get_downsampled_mni_and_mask(mask_info, clipped_img_affine, clipped_img_header, voxel_size)
+    # downsampled_mni, downsampled_mask, clipped_img = ch.get_downsampled_mni_and_mask(mask_info, clipped_img_affine, clipped_img_header, voxel_size)
 
     clipped_img = nib.Nifti1Image(mask_info, affine, header)
 
@@ -192,7 +190,7 @@ def _calculate_mask(site_results, agg_cache_dir):
     )
 
     # TODO check if this works fine when sent to executors
-    output_mask_file_name=os.path.join(agg_cache_dir, "mask.nii")
+    output_mask_file_name = os.path.join(agg_cache_dir, "mask.nii")
     output_downsampled_mni_filename = os.path.join(agg_cache_dir, "mni_downsampled.nii")
     nib.save(downsampled_mask, output_mask_file_name)
     nib.save(downsampled_mni, output_downsampled_mni_filename)

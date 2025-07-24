@@ -1,11 +1,11 @@
-
 import os
 import simplejson as json
+
 
 class CacheSerialStore():
     def __init__(self, base_dir):
         self._cache_dir = os.path.join(base_dir, "_temp_cache")
-        self._cache_file_path = os.path.join(self._cache_dir, "client_cache_serial_store.json" )
+        self._cache_file_path = os.path.join(self._cache_dir, "client_cache_serial_store.json")
         os.makedirs(self._cache_dir, exist_ok=True)  # succeeds even if directory exists.
 
         self.client_cache_dict = {}

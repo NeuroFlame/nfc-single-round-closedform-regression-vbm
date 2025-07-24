@@ -1,6 +1,7 @@
 import logging
 
-def _log_message(message: str, log_path: str, message_level : str ) -> None:
+
+def _log_message(message: str, log_path: str, message_level: str) -> None:
     """
     Logs details to log file.
 

@@ -10,6 +10,7 @@ from utils.data_transfer import *
 
 from . import aggregator_methods as am
 
+
 class SRCFRAggregator(Aggregator):
     """
     SrrAggregator handles the aggregation of results from multiple client sites.
@@ -31,9 +32,9 @@ class SRCFRAggregator(Aggregator):
         os.makedirs(self.agg_cache_dir, exist_ok=True)  # succeeds even if directory exists.
         os.makedirs(self.transfer_reader_dir, exist_ok=True)  # succeeds even if directory exists.
 
-        #Works as a cache store between several calls
-        #TODO: selcache_results: Dict[str, Any] = {}
-        #TODO: Create a tempdir and use that as cachedir for now
+        # Works as a cache store between several calls
+        # TODO: selcache_results: Dict[str, Any] = {}
+        # TODO: Create a tempdir and use that as cachedir for now
 
     def accept(self, site_result: Shareable, fl_ctx: FLContext) -> bool:
         """
@@ -62,18 +63,18 @@ class SRCFRAggregator(Aggregator):
         # Store the result for the site using its identity name as the key
         self.site_results[contribution_round][site_name] = site_result["result"]
 
-        #To clean this logic
-        if contribution_round ==0 :
+        # To clean this logic
+        if contribution_round == 0:
             # Define the image file path inside temp storage
             image_filename = f"{site_name}_average_nifti.nii"
             image_file_path = os.path.join(self.transfer_reader_dir, image_filename)
-            #with open(image_file_path, "wb") as f:
+            # with open(image_file_path, "wb") as f:
             #    f.write(site_result["transfer_average_nifti"])
             bytes_to_file(image_file_path, site_result["transfer_average_nifti"])
             self.site_results[contribution_round][site_name]["transfer_average_nifti"] = image_file_path
 
-        #To clean this logic
-        if contribution_round ==1 :
+        # To clean this logic
+        if contribution_round == 1:
             # Define the image file path inside temp storage
             xtx_file_name = os.path.join(self.transfer_reader_dir, f"{site_name}_XTX.npy")
             bytes_to_file(xtx_file_name, site_result["transfer_xTx"])
@@ -98,26 +99,31 @@ class SRCFRAggregator(Aggregator):
         contribution_round = fl_ctx.get_prop(key="CURRENT_ROUND", default=None)
 
         if (contribution_round == 0):
-                agg_result = am.perform_remote_step1(self.site_results[contribution_round], self.agg_cache, self.agg_cache_dir)
-                self.agg_cache.update(agg_result['cache'])
-                outgoing_shareable = Shareable()
-                outgoing_shareable['result'] = agg_result['output']
-                outgoing_shareable['result']['mask_file'] = file_to_bytes(agg_result['transfer_files']['mask_file'])
-                outgoing_shareable['result']['downsampled_mni'] = file_to_bytes(agg_result['transfer_files']['downsampled_mni'])
-                return outgoing_shareable
+            agg_result = am.perform_remote_step1(self.site_results[contribution_round], self.agg_cache,
+                                                 self.agg_cache_dir)
+            self.agg_cache.update(agg_result['cache'])
+            outgoing_shareable = Shareable()
+            outgoing_shareable['result'] = agg_result['output']
+            outgoing_shareable['result']['mask_file'] = file_to_bytes(agg_result['transfer_files']['mask_file'])
+            outgoing_shareable['result']['downsampled_mni'] = file_to_bytes(
+                agg_result['transfer_files']['downsampled_mni'])
+            return outgoing_shareable
 
-        elif(contribution_round == 1):
-                agg_result = am.perform_remote_step2(self.site_results[contribution_round], self.agg_cache, self.agg_cache_dir)
-                self.agg_cache.update(agg_result['cache'])
-                outgoing_shareable = Shareable()
-                outgoing_shareable['result'] = agg_result['output']
-                outgoing_shareable['result']['avg_beta_vector'] = file_to_bytes(agg_result['transfer_files']['avg_beta_vector'])
-                outgoing_shareable['result']['mean_y_global'] = file_to_bytes(agg_result['transfer_files']['mean_y_global'])
+        elif (contribution_round == 1):
+            agg_result = am.perform_remote_step2(self.site_results[contribution_round], self.agg_cache,
+                                                 self.agg_cache_dir)
+            self.agg_cache.update(agg_result['cache'])
+            outgoing_shareable = Shareable()
+            outgoing_shareable['result'] = agg_result['output']
+            outgoing_shareable['result']['avg_beta_vector'] = file_to_bytes(
+                agg_result['transfer_files']['avg_beta_vector'])
+            outgoing_shareable['result']['mean_y_global'] = file_to_bytes(agg_result['transfer_files']['mean_y_global'])
 
-                return outgoing_shareable
+            return outgoing_shareable
 
         elif (contribution_round == 2):
-            agg_result = am.perform_remote_step3(self.site_results[contribution_round], self.agg_cache, self.agg_cache_dir)
+            agg_result = am.perform_remote_step3(self.site_results[contribution_round], self.agg_cache,
+                                                 self.agg_cache_dir)
             self.agg_cache.update(agg_result.get('cache', {}))
             outgoing_shareable = Shareable()
             outgoing_shareable['result'] = agg_result['output']
@@ -125,4 +131,3 @@ class SRCFRAggregator(Aggregator):
 
         else:
             return Shareable()  # Return an empty Shareable if no data to aggregate
-

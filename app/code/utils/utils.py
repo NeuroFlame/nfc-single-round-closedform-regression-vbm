@@ -3,6 +3,7 @@ import logging
 from nvflare.apis.fl_constant import FLContextKey
 from nvflare.apis.fl_context import FLContext
 
+
 def find_workspace_path() -> str:
     """Find the workspace directory starting from the current working directory and going up."""
     current_path = os.getcwd()
@@ -12,14 +13,15 @@ def find_workspace_path() -> str:
         if os.path.isdir(candidate_path):
             logging.info(f"Workspace directory found at: {os.path.abspath(candidate_path)}")
             return os.path.abspath(candidate_path)
-        
+
         parent_path = os.path.dirname(current_path)
         if current_path == parent_path:
             break  # Reached the root directory
-        
+
         current_path = parent_path
 
     raise FileNotFoundError("Workspace directory could not be found.")
+
 
 def get_data_directory_path(fl_ctx: FLContext) -> str:
     """Determine and return the data directory path based on the available paths."""
@@ -40,6 +42,7 @@ def get_data_directory_path(fl_ctx: FLContext) -> str:
 
     raise FileNotFoundError("Data directory path could not be determined.")
 
+
 def get_output_directory_path(fl_ctx: FLContext) -> str:
     """Determine and return the output directory path based on the available paths."""
     job_id = fl_ctx.get_job_id()
@@ -58,6 +61,7 @@ def get_output_directory_path(fl_ctx: FLContext) -> str:
     os.makedirs(simulator_and_poc_path, exist_ok=True)
     logging.info(f"Output directory path for simulator and poc: {simulator_and_poc_path}")
     return simulator_and_poc_path
+
 
 def get_parameters_file_path(fl_ctx: FLContext) -> str:
     """Determine and return the parameters file path based on the available paths."""
