@@ -8,5 +8,5 @@
     "Threshold": 0.2,
     "VoxelSize":  4,
     "ReferenceColumns": { "site": "IA" },
-    "IgnoreSubjectsWithInvalidData" : false
+    "IgnoreSubjectsWithMissingData" : false
 }

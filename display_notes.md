@@ -16,7 +16,7 @@ This computation performs a closed (or normal) form regression using on the data
           "Threshold": 0.2,
           "VoxelSize":  4,
           "ReferenceColumns": { "site": "IA" },
-          "IgnoreSubjectsWithInvalidData" : false
+          "IgnoreSubjectsWithMissingData" : false
       }
    ```
 #### Settings Specification
@@ -32,7 +32,7 @@ Below are the specifications for the parameters:
 | Threshold                    | float   | This parameter is used in computing average mask. Voxel with values > threshold will only be included in the analysis.                                                             | any value > 0             | 0.2     | ❌ No      |
 | VoxelSize                    | int     | Number of voxels used for subsampling/downsampling                                                                                                                                 | any value >= 1            | 1       | ❌ No      |
 | ReferenceColumns             | dict    | Provide covariates with default value to be used as referencing in dummy encoding for categorical covariates. By default uses the first sorted value as per pandas dummy encoding. | dict                      | {}      |❌ No   |
-| IgnoreSubjectsWithInvalidData | boolean | This parameter lets the computation owner to decide how to handle if the data has missing or empty values.                                                                         | true or false             | False   | ❌ No      |
+| IgnoreSubjectsWithMissingData | boolean | This parameter lets the computation owner to decide how to handle if the data has missing or empty values.                                                                         | true or false             | False   | ❌ No      |
 
 Below is the description of the csv file that is required along with the nifti files:
 1. **Covariates File (`covariates.csv`)**
