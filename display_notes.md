@@ -32,9 +32,9 @@ This computation performs a closed (or normal) form regression using on the data
 
 ### Input Description
 
-Below is the description of the csv file that is required along with the nifti files:
+The computation requires **a data path** to be provided **having all the nifti files** along with the **covariates.csv** file.
 
-1.  **Covariates File (**`covariates.csv`**)**
+1.  **Covariates File (**`covariates.csv`**)** 
     
 
 This file must follow a consistent format consisting "**niftifilename**" column having the nifti file name alogn with the other covariate columns. The computation expects these files to match the covariate names specified in the `parameters.json` file.
