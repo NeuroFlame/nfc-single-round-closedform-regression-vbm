@@ -8,14 +8,14 @@
   "components": [
     {
       "id": "srcfr_aggregator",
-      "path": "aggregator.srcfr_aggregator.SRCFRAggregator",
+      "path": "aggregator.aggregator.SRCFRAggregator",
       "args": {}
     }
   ],
   "workflows": [
     {
       "id": "srcfr_workflow",
-      "path": "controller.srcfr_controller.SRCFRController",
+      "path": "controller.controller.SRCFRController",
       "args": {
       }
     }

@@ -1,6 +1,7 @@
-import os
-import numpy as np
 import logging
+import os
+
+import numpy as np
 
 
 def file_to_bytes(file_path: str) -> bytes:

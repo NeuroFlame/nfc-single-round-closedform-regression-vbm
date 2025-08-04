@@ -1,10 +1,10 @@
 import os
 
+import nibabel as nib
 import numpy as np
 import pandas as pd
-import nibabel as nib
-from nilearn.image import resample_to_img
 from nilearn import plotting
+from nilearn.image import resample_to_img
 
 
 def average_nifti(covariates_X, data_path, transfer_dir: str):

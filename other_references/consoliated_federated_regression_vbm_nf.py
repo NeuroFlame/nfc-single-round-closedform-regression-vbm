@@ -1,26 +1,26 @@
 import json
 import os
+
+import jsonpickle
+import nibabel as nib
 import numpy as np
 import pandas as pd
 
-import nibabel as nib
-
-import jsonpickle
-
-#import dominate
-#from dominate.tags import *
-
-import local_helpers as lh
 import common_helpers as ch
+import local_helpers as lh
 
-AGGREGATOR_CACHE = {} # REMOTE CACHE
+# import dominate
+# from dominate.tags import *
+
+AGGREGATOR_CACHE = {}  # REMOTE CACHE
 EXECUTOR_CACHE = {}  # LOCAL CACHE
 
-AGGREGATOR_CACHE_DIR="./debug/agg_cache_dir"
+AGGREGATOR_CACHE_DIR = "./debug/agg_cache_dir"
 os.makedirs(AGGREGATOR_CACHE_DIR, exist_ok=True)
-EXECUTOR_CACHE_DIRS={}
+EXECUTOR_CACHE_DIRS = {}
 
-EXECUTOR_OUTPUT_DIRS={}
+EXECUTOR_OUTPUT_DIRS = {}
+
 
 def get_SSE(y_actual, y_pred):
     return np.sum((y_actual - y_pred) ** 2)
@@ -40,7 +40,7 @@ def calculate_mask(site_results, agg_cache_dir, output_dir):
         else:
             avg_of_all = np.asarray(results["avg_nifti"])
 
-    avg_of_all = avg_of_all/num_sites
+    avg_of_all = avg_of_all / num_sites
 
     # Threshold binarizer
     user_id = site_ids[0]
@@ -51,17 +51,16 @@ def calculate_mask(site_results, agg_cache_dir, output_dir):
 
     clipped_img_header, clipped_img_affine = site_results[user_id]["avg_header"], site_results[user_id]["avg_affine"]
 
-    downsampled_mni, downsampled_mask, clipped_img = ch.get_downsampled_mni_and_mask(mask_info, clipped_img_affine, clipped_img_header, voxel_size)
-
+    downsampled_mni, downsampled_mask, clipped_img = ch.get_downsampled_mni_and_mask(mask_info, clipped_img_affine,
+                                                                                     clipped_img_header, voxel_size)
 
     # TODO check how to send these to executors
-    #nib.save(downsampled_mask, os.path.join(output_dir, "mask.nii"))
-    #nib.save(downsampled_mni, os.path.join(output_dir, "mni_downsampled.nii"))
+    # nib.save(downsampled_mask, os.path.join(output_dir, "mask.nii"))
+    # nib.save(downsampled_mni, os.path.join(output_dir, "mni_downsampled.nii"))
     nib.save(downsampled_mask, os.path.join(agg_cache_dir, "mask.nii"))
     nib.save(downsampled_mni, os.path.join(agg_cache_dir, "mni_downsampled.nii"))
 
     return downsampled_mask, downsampled_mni, clipped_img_header, clipped_img_affine, mask_info
-
 
 
 def perform_local_step1(covariates_path, data_path, computation_parameters, cache_dict):
@@ -77,10 +76,10 @@ def perform_local_step1(covariates_path, data_path, computation_parameters, cach
 
     categorical_dict = lh.parse_for_categorical(computation_parameters, covariates_path, data_path)
     avg_header, avg_affine, avg_nifti, covar_x = lh.average_nifti(computation_parameters, covariates_path,
-                                                               data_path, "output_dir")
+                                                                  data_path, "output_dir")
     # todo write_file(args, args, "cache", "args_file")
 
-    #TODO - publishing local data metrics- Do this as last step of the computation
+    # TODO - publishing local data metrics- Do this as last step of the computation
     # write local counts to a text file (to be sent to remote)
     # counts_file = os.path.join(state_["outputDirectory"], "local_counts.csv")
     # with open(counts_file, "a") as fn:
@@ -112,13 +111,13 @@ def perform_local_step1(covariates_path, data_path, computation_parameters, cach
         "avg_affine": avg_affine,
         "computation_phase": "local_0",
     }
-    local_cache_dict= {"X": covar_x.to_json(orient='split'),
-                 "voxel_size": voxel_size,
-                 "lambda": lamb}
+    local_cache_dict = {"X": covar_x.to_json(orient='split'),
+                        "voxel_size": voxel_size,
+                        "lambda": lamb}
     results = {"output": output_dict, "cache": local_cache_dict}
 
-
     return results
+
 
 def perform_remote_step1(site_results, agg_cache_dict, agg_cache_dir):
     def return_uniques_and_counts(df):
@@ -131,17 +130,18 @@ def perform_remote_step1(site_results, agg_cache_dict, agg_cache_dir):
 
         return keys, count
 
-
     """The first function in the remote computation chain"""
-    downsampled_mask, downsampled_mni, clipped_img_header, clipped_img_affine, mask_info = calculate_mask(site_results, agg_cache_dir, "output_dir")
+    downsampled_mask, downsampled_mni, clipped_img_header, clipped_img_affine, mask_info = calculate_mask(site_results,
+                                                                                                          agg_cache_dir,
+                                                                                                          "output_dir")
     site_info = {site: site_results[site]["categorical_dict"] for site in site_results.keys()}
     ref_cols = {site: site_results[site]["reference_columns"] for site in site_results.keys()}
 
-    reference_dict=next(iter(ref_cols.values()))
+    reference_dict = next(iter(ref_cols.values()))
     # assert that reference columns/values for dummy encoding are same across all the sites for
     # the correctness of the decentralized regression. This is always true for coinstac GUI computation.
-    assert all(value == reference_dict  for value in ref_cols.values()), \
-        "Reference values for dummy encoding are not same across all the sites "+ str(ref_cols)
+    assert all(value == reference_dict for value in ref_cols.values()), \
+        "Reference values for dummy encoding are not same across all the sites " + str(ref_cols)
 
     df = pd.DataFrame.from_dict(site_info)
     covar_keys, unique_count = return_uniques_and_counts(df)
@@ -154,16 +154,16 @@ def perform_remote_step1(site_results, agg_cache_dict, agg_cache_dir):
             "global_unique_count": unique_count,
             "mask_data": downsampled_mask.get_fdata(),
             "mask_header": downsampled_mask.header,
-            "mask_affine" : downsampled_mask.affine,
+            "mask_affine": downsampled_mask.affine,
             "downsampled_mni_data": downsampled_mni.get_fdata(),
             "downsampled_mni_header": downsampled_mni.header,
-            "downsampled_mni_affine" : downsampled_mni.affine,
-            "mask_info":mask_info,
+            "downsampled_mni_affine": downsampled_mni.affine,
+            "mask_info": mask_info,
             "clipped_img_header": clipped_img_header,
             "clipped_img_affine": clipped_img_affine,
             "computation_phase": "remote_0",
         },
-        "cache": cache_dict ,
+        "cache": cache_dict,
     }
 
     global AGGREGATOR_CACHE
@@ -207,8 +207,8 @@ def perform_local_step2(agg_result, data_path, cache_dict, cache_dir, output_dir
     ch.saveBin(os.path.join(cache_dir, "XTy.npy"), Xtransposey_local)
 
     # TODO: Writing XTX and XTy to output as files
-    #ch.saveBin(os.path.join(transfer_dir, "XTX.npy"), XtransposeX_local)
-    #ch.saveBin(os.path.join(transfer_dir, "XTy.npy"), Xtransposey_local)
+    # ch.saveBin(os.path.join(transfer_dir, "XTX.npy"), XtransposeX_local)
+    # ch.saveBin(os.path.join(transfer_dir, "XTy.npy"), Xtransposey_local)
 
     output_dict = {
         "XtransposeX_local": XtransposeX_local.tolist(),
@@ -222,7 +222,7 @@ def perform_local_step2(agg_result, data_path, cache_dict, cache_dir, output_dir
     cache_dict = {"covariates": "X.npy", "dependents": "y.npy",
                   "reference_columns": agg_result["reference_columns"]}
 
-    #write_file(args, output_dict, "output", "local_output")
+    # write_file(args, output_dict, "output", "local_output")
 
     result = {
         "output": output_dict,
@@ -233,6 +233,7 @@ def perform_local_step2(agg_result, data_path, cache_dict, cache_dir, output_dir
     EXECUTOR_CACHE.update(cache_dict)
 
     return result
+
 
 def perform_remote_step2(site_results, agg_cache_dict, agg_cache_dir, transfer_dir="transfer_dir"):
     """The second function in the local computation chain"""
@@ -254,7 +255,7 @@ def perform_remote_step2(site_results, agg_cache_dict, agg_cache_dir, transfer_d
         raise Exception("Unequal lambdas at local sites")
 
     try:
-        #Add lambda's
+        # Add lambda's
         beta_vector_0 = beta_vector_0 + np.unique(all_lambdas) * np.eye(beta_vector_0.shape[0])
 
         avg_beta_vector = np.transpose(np.dot(np.linalg.inv(beta_vector_0), beta_vector_1))
@@ -278,7 +279,7 @@ def perform_remote_step2(site_results, agg_cache_dict, agg_cache_dir, transfer_d
     #     mean_y_global,
     # )
     #
-    ch.saveBin(os.path.join(agg_cache_dir, "avg_beta_vector.npy"),avg_beta_vector)
+    ch.saveBin(os.path.join(agg_cache_dir, "avg_beta_vector.npy"), avg_beta_vector)
 
     output_dict = {
         "avg_beta_vector": avg_beta_vector.tolist(),
@@ -303,17 +304,16 @@ def perform_remote_step2(site_results, agg_cache_dict, agg_cache_dir, transfer_d
 
 def perform_local_step3(agg_result, data_path, cache_dict, cache_dir, output_dir,
                         transfer_dir="transfer_dir"):
-
     biased_X = ch.loadBin(os.path.join(cache_dir, cache_dict["covariates"]))
     y = ch.loadBin(os.path.join(cache_dir, cache_dict["dependents"]))
 
     avg_beta_vector = np.asarray(agg_result["avg_beta_vector"])
 
-    mean_y_global =np.asarray(agg_result["mean_y_global"])
+    mean_y_global = np.asarray(agg_result["mean_y_global"])
 
     varX_matrix_local = lh.multiply(biased_X, biased_X)
 
-    sse_local, sst_local = lh.stats_calculation( biased_X, y, avg_beta_vector, mean_y_global)
+    sse_local, sst_local = lh.stats_calculation(biased_X, y, avg_beta_vector, mean_y_global)
 
     output_dict = {
         "SSE_local": sse_local.tolist(),
@@ -324,11 +324,10 @@ def perform_local_step3(agg_result, data_path, cache_dict, cache_dir, output_dir
     cache_dict = {"avg_beta_vector": avg_beta_vector.tolist()}
     result = {"output": output_dict, "cache": cache_dict}
 
-
     global EXECUTOR_CACHE
     EXECUTOR_CACHE.update(cache_dict)
 
-    return  result
+    return result
 
 
 def perform_remote_step3(site_results, agg_cache_dict, agg_cache_dir, transfer_dir="transfer_dir"):
@@ -399,14 +398,13 @@ def perform_remote_step3(site_results, agg_cache_dict, agg_cache_dir, transfer_d
     # output_dict = {"local_stats": local_png_files, "global_stats": global_png_files}
 
     output_dict = {
-    "r_squared_global": r_squared_global.tolist(),
-    "MSE" : MSE.tolist(),
-    "ts_global" : ts_global.tolist(),
-    "ps_global" : ps_global,
-    "X_labels": X_labels
+        "r_squared_global": r_squared_global.tolist(),
+        "MSE": MSE.tolist(),
+        "ts_global": ts_global.tolist(),
+        "ps_global": ps_global,
+        "X_labels": X_labels
     }
     computation_output_dict = {"output": output_dict, "cache": {}}
-
 
     global AGGREGATOR_CACHE
     AGGREGATOR_CACHE.update({})
@@ -415,7 +413,7 @@ def perform_remote_step3(site_results, agg_cache_dict, agg_cache_dir, transfer_d
 
 
 def perform_local_step4(agg_result, data_path, cache_dict, cache_dir, output_dir,
-                            transfer_dir="transfer_dir"):
+                        transfer_dir="transfer_dir"):
     avg_beta_vector = cache_dict["avg_beta_vector"]
     r_squared_global = np.asarray(agg_result["r_squared_global"])
     MSE = np.asarray(agg_result["MSE"])
@@ -423,8 +421,7 @@ def perform_local_step4(agg_result, data_path, cache_dict, cache_dir, output_dir
     ps_global = np.asarray(agg_result["ps_global"])
     X_labels = np.asarray(agg_result["X_labels"])
 
-
-    global_output_dir = output_dir+"global"
+    global_output_dir = output_dir + "global"
     os.makedirs(global_output_dir, exist_ok=True)
     lh.print_pvals(cache_dir, global_output_dir, ps_global, ts_global, X_labels)
     lh.print_beta_images(cache_dir, global_output_dir, avg_beta_vector, X_labels)
@@ -437,18 +434,19 @@ def perform_local_step4(agg_result, data_path, cache_dict, cache_dir, output_dir
 
     return result
 
+
 def run_federated_ssr():
     # Example usage for multiple sites
     sites = ['site1', 'site2']
-    computation_parameters=None
+    computation_parameters = None
     with open('../test_data/server/parameters.json') as f:
         computation_parameters = json.load(f)
-    #computation_parameters = json.loads('../test_data/server/parameters.json')
+    # computation_parameters = json.loads('../test_data/server/parameters.json')
 
-    #Iteration - 1
+    # Iteration - 1
     site_results = {}
     for site in sites:
-        EXECUTOR_CACHE[site]={}
+        EXECUTOR_CACHE[site] = {}
         EXECUTOR_CACHE_DIRS[site] = f"./debug/cache_{site}/"
         os.makedirs(EXECUTOR_CACHE_DIRS[site], exist_ok=True)
 
@@ -457,21 +455,22 @@ def run_federated_ssr():
 
         covariates_path = os.path.join(f'../test_data/{site}/covariates.csv')
         data_path = os.path.join(f'../test_data/{site}/')
-        result = perform_local_step1(covariates_path, data_path, computation_parameters, cache_dict=EXECUTOR_CACHE[site])
+        result = perform_local_step1(covariates_path, data_path, computation_parameters,
+                                     cache_dict=EXECUTOR_CACHE[site])
         site_results[site] = result["output"]
         EXECUTOR_CACHE[site].update(result["cache"])
 
     rem_results = perform_remote_step1(site_results, AGGREGATOR_CACHE, AGGREGATOR_CACHE_DIR)
     remote_results = rem_results["output"]
 
-    #Iteration - 2
+    # Iteration - 2
     site_results = {}
     for site in sites:
         data_path = os.path.join(f'../test_data/{site}/')
         result = perform_local_step2(remote_results, data_path, cache_dict=EXECUTOR_CACHE[site],
-                                                 cache_dir=EXECUTOR_CACHE_DIRS[site],
-                                                 output_dir=EXECUTOR_OUTPUT_DIRS[site],
-                                                 transfer_dir="transfer_dir")
+                                     cache_dir=EXECUTOR_CACHE_DIRS[site],
+                                     output_dir=EXECUTOR_OUTPUT_DIRS[site],
+                                     transfer_dir="transfer_dir")
         site_results[site] = result["output"]
         EXECUTOR_CACHE[site].update(result["cache"])
 
@@ -507,5 +506,6 @@ def run_federated_ssr():
 
     # Save the results
     # Save as png file
+
 
 run_federated_ssr()

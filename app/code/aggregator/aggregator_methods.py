@@ -1,9 +1,8 @@
 import os
+
+import jsonpickle
 import numpy as np
 import pandas as pd
-import scipy as sp
-import jsonpickle
-
 from utils.data_transfer import *
 
 # from ..utils.data_transfer import *

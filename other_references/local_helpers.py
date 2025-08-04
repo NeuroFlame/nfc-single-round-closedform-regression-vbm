@@ -1,24 +1,23 @@
 import os
 
-import  numpy as np
+import nibabel as nib
+import numpy as np
 import pandas as pd
 import scipy as sp
-import statsmodels.api as sm
-
 import simplejson as json
+import statsmodels.api as sm
+from nilearn import plotting
+from nilearn.image import resample_to_img
 from numba import jit, prange
 
-import nibabel as nib
-from nilearn.image import resample_to_img
-from nilearn import plotting
-
 import common_helpers as ch
+
 
 def parse_covar_info(computation_parameters, covariates_path, data_path):
     """Read covariate information from the UI"""
     covar_information = computation_parameters["Covariates"]
 
-    #TODO use similar to freesurfer: validate_and_get_inputs(covariates_path: str, data_path: str,
+    # TODO use similar to freesurfer: validate_and_get_inputs(covariates_path: str, data_path: str,
     # computation_parameters: Dict[str, Any], log_path: str) -> bool:
 
     covar_info = pd.read_csv(covariates_path, index_col="niftifile", header=0)
@@ -26,10 +25,10 @@ def parse_covar_info(computation_parameters, covariates_path, data_path):
     # Creating this to catch nan in numeric columns
     temp_df = covar_info.apply(pd.to_numeric, errors='ignore')
 
-    #Remove rows with empty or nan values
+    # Remove rows with empty or nan values
     rows_with_nan_cells = np.where(pd.isnull(temp_df))[0].tolist()
-    #TODO Fix this rows_with_blank_cells = np.where(temp_df.applymap(lambda x: x == ''))[0].tolist()
-    rows_with_blank_cells=[]
+    # TODO Fix this rows_with_blank_cells = np.where(temp_df.applymap(lambda x: x == ''))[0].tolist()
+    rows_with_blank_cells = []
     ignore_rows = list(set(rows_with_nan_cells).union(rows_with_blank_cells))
     if len(ignore_rows) > 0:
         # Dropping subjects with empty or nan covariate values
@@ -44,7 +43,7 @@ def parse_covar_info(computation_parameters, covariates_path, data_path):
     if covar_info.index.empty:
         raise Exception("Could not find .nii files specified in the covariates csv")
 
-    #TODO - change as per flare datatypes --
+    # TODO - change as per flare datatypes --
     # This is for OLD COINSTAC -
     # convert columns to their original datatypes provided in the input
     # for column, value in computation_parameters["Covariates"][covar_info.index[0]].items():
@@ -64,12 +63,14 @@ def parse_covar_info(computation_parameters, covariates_path, data_path):
 
     return covar_info
 
+
 def parse_for_categorical(computation_parameters, covariates_path, data_path):
     X = parse_covar_info(computation_parameters, covariates_path, data_path)
 
     site_dict1 = {col: list(X[col].unique()) for col in X.select_dtypes(include=object)}
 
     return site_dict1
+
 
 def average_nifti(computation_parameters, covariates_path, data_path, output_dir):
     """Reads in all the nifti images and calculates their average"""
@@ -81,9 +82,9 @@ def average_nifti(computation_parameters, covariates_path, data_path, output_dir
     for image in covar_x.index:
         image_data = nib.load(os.path.join(input_dir, image)).dataobj[:]
         if (
-            np.all(np.isnan(image_data))
-            or np.count_nonzero(image_data) == 0
-            or image_data.size == 0
+                np.all(np.isnan(image_data))
+                or np.count_nonzero(image_data) == 0
+                or image_data.size == 0
         ):
             covar_x = covar_x.drop(index=image)
         else:
@@ -107,19 +108,21 @@ def nifti_to_data(agg_result, data_path, cache_dict, cache_dir, X):
     voxel_size = cache_dict["voxel_size"]
     try:
         mask_info = agg_result["mask_info"]
-    except :
+    except:
         raise Exception("Missing Mask ")
 
-    #TODO: save downsampled mask.. this is not needed if nii files can be sent from aggregator
-    mni_downsampled, downsampled_mask, clipped_img = ch.get_downsampled_mni_and_mask(mask_info, agg_result["clipped_img_affine"], agg_result["clipped_img_header"],
-                                    voxel_size)
+    # TODO: save downsampled mask.. this is not needed if nii files can be sent from aggregator
+    mni_downsampled, downsampled_mask, clipped_img = ch.get_downsampled_mni_and_mask(mask_info,
+                                                                                     agg_result["clipped_img_affine"],
+                                                                                     agg_result["clipped_img_header"],
+                                                                                     voxel_size)
     nib.save(mni_downsampled, os.path.join(cache_dir, ch.DOWNSAMPLED_MNI))
     nib.save(downsampled_mask, os.path.join(cache_dir, ch.MASK))
 
     mask_data = nib.load(os.path.join(cache_dir, ch.MASK)).get_fdata()
     mask_dim = mask_data.shape
 
-    #TODO to get this file from aggregator
+    # TODO to get this file from aggregator
     # mni_image = os.path.join(args["state"]["baseDirectory"], "mni_downsampled.nii")
     mni_image = os.path.join(cache_dir, ch.DOWNSAMPLED_MNI)
     y = np.zeros((len(X.index), np.count_nonzero(mask_data)), dtype="f8")
@@ -161,12 +164,13 @@ def create_dummies(data_f, cols, drop_flag=True):
 def get_default_dummy_encoding_columns(df):
     """Returns a dictionary of the first sorted unique-value of all categorical variables."""
 
-    default_col_sortedval_dict={}
-    categorical_cols=df.select_dtypes(include=['object']).columns.tolist()
+    default_col_sortedval_dict = {}
+    categorical_cols = df.select_dtypes(include=['object']).columns.tolist()
     for col_name in categorical_cols:
-        default_col_sortedval_dict[col_name]=sorted(df[col_name].unique())[0]
+        default_col_sortedval_dict[col_name] = sorted(df[col_name].unique())[0]
 
     return default_col_sortedval_dict
+
 
 def adjust_dummy_encoding_columns(df, ref_col_val_dict, data_def_col_val_dict):
     """ If a column is listed in reference_columns in the input for dummy encoding,
@@ -174,10 +178,11 @@ def adjust_dummy_encoding_columns(df, ref_col_val_dict, data_def_col_val_dict):
      otherwise the default sorted first value is used for a column."""
 
     for col_name in data_def_col_val_dict.keys():
-        ref_col_val =col_name +"_"+ ref_col_val_dict.get(col_name, data_def_col_val_dict[col_name])
+        ref_col_val = col_name + "_" + ref_col_val_dict.get(col_name, data_def_col_val_dict[col_name])
         df.drop(ref_col_val, inplace=True, axis=1)
 
     return df
+
 
 def perform_encoding(agg_result, data_path, cache_dict, data_f):
     """Perform encoding of various categorical variables"""
@@ -191,13 +196,14 @@ def perform_encoding(agg_result, data_path, cache_dict, data_f):
     cols_nodrop = [x for x in cols_categorical if x not in cols_mono]
     default_col_sortedval_dict = get_default_dummy_encoding_columns(data_f)
     data_f = create_dummies(data_f, cols_nodrop, False)
-    data_f = adjust_dummy_encoding_columns( data_f, agg_result["reference_columns"],
+    data_f = adjust_dummy_encoding_columns(data_f, agg_result["reference_columns"],
                                            default_col_sortedval_dict)
 
     data_f = data_f.dropna(axis=0, how="any")
     data_f = sm.add_constant(data_f, has_constant="add")
 
     return data_f
+
 
 def merging_globals(X, site_covar_dict, dict_, key):
     """Merge the actual data frame with the created dummy matrix"""
@@ -214,7 +220,7 @@ def add_site_covariates(agg_result, X):
     """Add site covariates based on information gathered from all sites"""
     all_sites = agg_result["covar_keys"]
     glob_uniq_ct = agg_result["global_unique_count"]
-    reference_col_dict= agg_result["reference_columns"]
+    reference_col_dict = agg_result["reference_columns"]
 
     all_sites = json.loads(all_sites)
 
@@ -243,7 +249,7 @@ def print_beta_images(cache_dir, output_dir, avg_beta_vector, covar_labels):
     beta_df = pd.DataFrame(avg_beta_vector, columns=covar_labels)
 
     try:
-        #TODO load from aggregator result -- if files can be sent
+        # TODO load from aggregator result -- if files can be sent
         mask = nib.load(os.path.join(cache_dir, ch.MASK))
     except FileNotFoundError:
         mask = nib.load(os.path.join(cache_dir, ch.MASK))
@@ -264,13 +270,13 @@ def print_beta_images(cache_dir, output_dir, avg_beta_vector, covar_labels):
         )
 
 
-def print_pvals(cache_dir, output_dir, ps_global, ts_global, covar_labels ):
+def print_pvals(cache_dir, output_dir, ps_global, ts_global, covar_labels):
     """Print regression coefficients' p-values as nifti files."""
     p_df = pd.DataFrame(ps_global, columns=covar_labels)
     t_df = pd.DataFrame(ts_global, columns=covar_labels)
 
     try:
-        #TODO load from aggregator result -- if files can be sent
+        # TODO load from aggregator result -- if files can be sent
         mask = nib.load(os.path.join(cache_dir, ch.MASK))
     except FileNotFoundError:
         mask = nib.load(os.path.join(cache_dir, ch.MASK))
@@ -278,7 +284,7 @@ def print_pvals(cache_dir, output_dir, ps_global, ts_global, covar_labels ):
     for column in p_df:
         new_data = np.zeros(mask.shape)
         new_data[mask.get_fdata() > 0] = (
-            -1 * np.log10(p_df[column]) * np.sign(t_df[column])
+                -1 * np.log10(p_df[column]) * np.sign(t_df[column])
         )
 
         image_string = "pval_" + str(column)
@@ -296,10 +302,10 @@ def print_pvals(cache_dir, output_dir, ps_global, ts_global, covar_labels ):
 def print_r2_image(cache_dir, output_dir, beta_df):
     """Print regression coefficients as nifti files."""
     try:
-        #TODO load from aggregator result -- if files can be sent
-        mask = nib.load(os.path.join(cache_dir,ch.MASK))
+        # TODO load from aggregator result -- if files can be sent
+        mask = nib.load(os.path.join(cache_dir, ch.MASK))
     except FileNotFoundError:
-        mask = nib.load(os.path.join(cache_dir,ch.MASK))
+        mask = nib.load(os.path.join(cache_dir, ch.MASK))
 
     new_data = np.zeros(mask.shape)
     new_data[mask.get_fdata() > 0] = beta_df
@@ -314,6 +320,7 @@ def print_r2_image(cache_dir, output_dir, beta_df):
     plotting.plot_stat_map(
         clipped_img, output_file=output_file, display_mode="ortho", colorbar=True
     )
+
 
 def local_stats_to_dict_numba(X, y, cache_dir, output_dir):
     def gather_local_stats_helper(X, y, pinv):
@@ -371,7 +378,7 @@ def local_stats_to_dict_numba(X, y, cache_dir, output_dir):
 
     beta_vector = params.T.tolist()
 
-    local_output_dir = output_dir+"_local"
+    local_output_dir = output_dir + "_local"
     os.makedirs(local_output_dir, exist_ok=True)
     print_pvals(cache_dir, local_output_dir, pvalues.T, tvalues.T, X_labels)
     print_beta_images(cache_dir, local_output_dir, beta_vector, X_labels)
@@ -380,6 +387,7 @@ def local_stats_to_dict_numba(X, y, cache_dir, output_dir):
     local_stats_list = sorted(os.listdir(local_output_dir))
 
     return beta_vector, local_stats_list
+
 
 #################################
 

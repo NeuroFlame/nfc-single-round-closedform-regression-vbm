@@ -1,12 +1,12 @@
-from typing import Dict, Any
 import os
-from nvflare.apis.shareable import Shareable
-from nvflare.apis.fl_context import FLContext
-from nvflare.app_common.abstract.aggregator import Aggregator
-from nvflare.apis.fl_constant import ReservedKey
+from typing import Dict, Any
 
-from utils.task_constants import *
+from nvflare.apis.fl_constant import ReservedKey
+from nvflare.apis.fl_context import FLContext
+from nvflare.apis.shareable import Shareable
+from nvflare.app_common.abstract.aggregator import Aggregator
 from utils.data_transfer import *
+from utils.task_constants import *
 
 from . import aggregator_methods as am
 

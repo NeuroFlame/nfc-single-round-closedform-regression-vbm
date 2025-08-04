@@ -9,7 +9,7 @@
         "perform_local_client_step4"
       ],
       "executor": {
-        "path": "executor.srcfr_executor.SRCFRExecutor",
+        "path": "executor.executor.SRCFRExecutor",
         "args": {}
       }
     }

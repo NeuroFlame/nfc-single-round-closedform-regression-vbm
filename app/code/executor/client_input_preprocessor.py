@@ -1,14 +1,14 @@
 import os
+from distutils.util import strtobool
+from typing import Dict, Any
+
+import nibabel as nib
 import numpy as np
 import pandas as pd
-import nibabel as nib
 import statsmodels.api as sm
 from numba import jit
-
-from typing import Dict, Any
-from distutils.util import strtobool
-
 from utils.logger import _log_message
+
 from . import client_constants
 
 
@@ -20,7 +20,7 @@ def validate_and_get_inputs(covariates_path: str, data_path: str, computation_pa
         expected_covariates_info = computation_parameters["Covariates"]
         expected_covariates = list(expected_covariates_info.keys())
         ignore_subjects_with_missing_data = computation_parameters.get("IgnoreSubjectsWithMissingData",
-                                                                          client_constants.DEFAULT_IgnoreSubjectsWithMissingData)
+                                                                       client_constants.DEFAULT_IgnoreSubjectsWithMissingData)
         ignore_subjects_with_missing_data = bool(strtobool(str(ignore_subjects_with_missing_data)))
 
         _log_message(f' ignore_subjects_with_missing_data = {ignore_subjects_with_missing_data}', log_path,
