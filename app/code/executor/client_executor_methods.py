@@ -12,12 +12,26 @@ from . import client_input_preprocessor as cip
 from . import client_nifti_helper as cnh
 
 
-def perform_client_step1(covariates_path, data_path, computation_parameters, log_path, cache_dict, cache_dir):
+def perform_client_step1_validate_inputs_and_compute_mask(covariates_path, data_path, computation_parameters, logger,
+                                                          cache_dict, cache_dir):
+    """
+        Reads covariates and nifti files  from the mentioned paths, performs validation. Upon successful validation,
+        determines the categorical variables, computes the average of all nifti files and send them to the aggregator.
+
+        :param covariates_path: user path provided for the covariates.csv file
+        :param data_path: user path provided that has all the nifti files for the subjects in covariates.csv
+        :param computation_parameters: input parameters
+        :param logger: logger to save logs
+        :param cache_dict: client cache dict
+        :param cache_dir: client cache dir
+    """
+    logger.info(f"Computation parameters received: {computation_parameters}")
+
     # Validate the run inputs (covariates, dependent data, and parameters)
-    is_valid, covariates_X = cip.validate_and_get_inputs(covariates_path, data_path, computation_parameters, log_path)
+    is_valid, covariates_X = cip.validate_and_get_inputs(covariates_path, data_path, computation_parameters, logger)
     if not is_valid:
         # Halt execution if validation fails
-        raise ValueError(f"Invalid run input. Check validation log at {log_path}")
+        raise ValueError(f"Invalid run input. Check validation log at {logger.get_file_name_with_path()}")
 
     categorical_dict = {col: list(covariates_X[col].unique()) for col in covariates_X.select_dtypes(include=object)}
     # converting all the values of the reference columns to lowercase as
@@ -59,7 +73,21 @@ def perform_client_step1(covariates_path, data_path, computation_parameters, log
     return results
 
 
-def perform_local_step2(agg_result, data_path, log_path, cache_dict, cache_dir):
+def perform_local_step2_compute_local_model(agg_result, data_path, logger, cache_dict, cache_dir):
+    """
+        This methods does the following:
+        1. Loads nifti data for each subject and downsampled it to the computed aggregated mask
+        2. computes local regression model
+        3. Updates site as a covariate in X
+        4. Computes XtransposeX and XtransposeY matrices and sends them to aggregator along with other model parameters.
+
+        :param covariates_path: user path provided for the covariates.csv file
+        :param data_path: user path provided that has all the nifti files for the subjects in covariates.csv
+        :param computation_parameters: input parameters
+        :param logger: logger to save logs
+        :param cache_dict: client cache dict
+        :param cache_dir: client cache dir
+    """
     # save mask and downsampled mni in cache
     mask_file_name = os.path.join(cache_dir, "mask.nii")
     bytes_to_file(mask_file_name, agg_result["mask_file"])
@@ -73,8 +101,6 @@ def perform_local_step2(agg_result, data_path, log_path, cache_dict, cache_dir):
     regularizer_l2 = cache_dict["lambda"]
 
     # Local Statistics
-    # y = cnh.nifti_to_data(agg_result, data_path, cache_dict, cache_dir, X, mask_file_name,
-    #                       downsampled_mni_file_name)
     y = cnh.nifti_to_data(data_path, cache_dict, X, mask_file_name, downsampled_mni_file_name)
 
     encoded_X = cip.perform_encoding(agg_result, X)
@@ -104,7 +130,6 @@ def perform_local_step2(agg_result, data_path, log_path, cache_dict, cache_dir):
     output_dict = {
         "mean_y_local": meanY_vector.tolist(),
         "count_local": lenY_vector.tolist(),
-        # "local_stats_list": local_stats_list,
         "X_labels": X_labels,
         "lambda": regularizer_l2,
     }
@@ -130,7 +155,16 @@ def perform_local_step2(agg_result, data_path, log_path, cache_dict, cache_dir):
     return result
 
 
-def perform_local_step3(agg_result, log_path, cache_dict, cache_dir):
+def perform_local_step3_compute_metrics_with_global_params(agg_result, logger, cache_dict, cache_dir):
+    """
+        Computes the SSE_local, SST_local and varX_matrix_local based on the global aggregated parameters
+
+        :param agg_results: results received from aggregator
+        :param logger: logger to save logs
+        :param cache_dict: client cache dict
+        :param cache_dir: client cache dir
+
+    """
     # save avg_beta_vector and mean_y_global files from aggregator in cache_dir
     avg_beta_vector_file_name = os.path.join(cache_dir, "avg_beta_vector.npy")
     bytes_to_file(avg_beta_vector_file_name, agg_result["avg_beta_vector"])
@@ -162,7 +196,16 @@ def perform_local_step3(agg_result, log_path, cache_dict, cache_dir):
     return result
 
 
-def perform_local_step4(agg_result, log_path, cache_dict, cache_dir, output_dir):
+def perform_local_step4_persist_results(agg_result, logger, cache_dict, cache_dir, output_dir):
+    """
+       Persists results in various file formats
+
+       :param agg_results: results received from aggregator
+       :param logger: logger to save logs
+       :param cache_dict: client cache dict
+       :param cache_dir: client cache dir
+       :param output_dir: output directory which saves all the regression .png and .nii files
+    """
     avg_beta_vector = load_binary(cache_dict["avg_beta_vector_file_name"])
     r_squared_global = np.asarray(agg_result["r_squared_global"])
     ts_global = np.asarray(agg_result["ts_global"])

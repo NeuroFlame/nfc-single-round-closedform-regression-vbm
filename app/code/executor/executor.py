@@ -3,10 +3,12 @@ import os
 from typing import Dict
 
 from nvflare.apis.executor import Executor
+from nvflare.apis.fl_constant import FLContextKey
 from nvflare.apis.fl_context import FLContext
 from nvflare.apis.shareable import Shareable
 from nvflare.apis.signal import Signal
 from utils.data_transfer import *
+from utils.logger import NFCLogger
 from utils.task_constants import *
 from utils.utils import get_data_directory_path, get_output_directory_path
 
@@ -20,6 +22,7 @@ class SRCFRExecutor(Executor):
         Initialize the SrrExecutor. This constructor sets up the logger.
         """
         logging.info("SrrExecutor initialized")
+        self.logger = None
 
     def execute(
             self,
@@ -41,6 +44,9 @@ class SRCFRExecutor(Executor):
             A Shareable object containing results of the task.
         """
         cache_store = ccs.CacheSerialStore(get_output_directory_path(fl_ctx))
+        self.logger = NFCLogger(fl_ctx.get_prop(FLContextKey.CLIENT_NAME) + '.log', get_output_directory_path(fl_ctx),
+                                fl_ctx.get_peer_context().get_prop("COMPUTATION_PARAMETERS").get('log_level', "info"))
+
         # Prepare the Shareable object to send the result to other components
         outgoing_shareable = Shareable()
 
@@ -77,13 +83,15 @@ class SRCFRExecutor(Executor):
                                                                cache_store.get_cache_dict(),
                                                                cache_store.get_cache_dir())
             cache_store.remove_cache()
+            self.logger.format_log()
             # Sending empty sharable object as result
 
         else:
             # Raise an error if the task name is unknown
             raise ValueError(f"Unknown task name: {task_name}")
 
-        # return client_result['output']
+        # close logger
+        self.logger.close()
 
         return outgoing_shareable
 
@@ -110,10 +118,9 @@ class SRCFRExecutor(Executor):
         covariates_path = os.path.join(data_directory, "covariates.csv")
 
         computation_parameters = fl_ctx.get_peer_context().get_prop("COMPUTATION_PARAMETERS")
-        log_path = os.path.join(get_output_directory_path(fl_ctx), "client_log.txt")
 
         # Perform ridge regression using the specified covariates and dependent variables
-        result = cem.perform_client_step1(covariates_path, data_path, computation_parameters, log_path, cache_dict,
+        result = cem.perform_client_step1_validate_inputs_and_compute_mask(covariates_path, data_path, computation_parameters, self.logger, cache_dict,
                                           cache_dir)
 
         return result
@@ -137,11 +144,10 @@ class SRCFRExecutor(Executor):
         agg_result = shareable.get("result")
 
         # Paths to data directories and logs
-        log_path = os.path.join(get_output_directory_path(fl_ctx), "client_log.txt")
         data_path = get_data_directory_path(fl_ctx)
 
         # Perform ridge regression using the specified covariates and dependent variables
-        result = cem.perform_local_step2(agg_result, data_path, log_path, cache_dict, cache_dir)
+        result = cem.perform_local_step2_compute_local_model(agg_result, data_path, self.logger, cache_dict, cache_dir)
 
         return result
 
@@ -163,11 +169,8 @@ class SRCFRExecutor(Executor):
         # Retrieve the global regression result from the Shareable object
         agg_result = shareable.get("result")
 
-        # Paths to data directories and logs
-        log_path = os.path.join(get_output_directory_path(fl_ctx), "client_log.txt")
-
         # Perform ridge regression using the specified covariates and dependent variables
-        result = cem.perform_local_step3(agg_result, log_path, cache_dict, cache_dir)
+        result = cem.perform_local_step3_compute_metrics_with_global_params(agg_result, self.logger, cache_dict, cache_dir)
 
         return result
 
@@ -190,11 +193,10 @@ class SRCFRExecutor(Executor):
 
         if agg_result == None:
             raise ("Empty aggregation result")
-        # Paths to data directories and logs
-        log_path = os.path.join(get_output_directory_path(fl_ctx), "client_log.txt")
+
         # Save the global regression results
         print(f'\n\n\ntype(agg_result): {type(agg_result)}')
         output_dir = get_output_directory_path(fl_ctx)
-        result = cem.perform_local_step4(agg_result, log_path, cache_dict, cache_dir, output_dir)
+        result = cem.perform_local_step4_persist_results(agg_result, self.logger, cache_dict, cache_dir, output_dir)
 
         return result

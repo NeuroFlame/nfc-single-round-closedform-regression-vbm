@@ -6,7 +6,9 @@ from nvflare.apis.fl_context import FLContext
 from nvflare.apis.shareable import Shareable
 from nvflare.app_common.abstract.aggregator import Aggregator
 from utils.data_transfer import *
+from utils.logger import NFCLogger
 from utils.task_constants import *
+from utils.utils import get_output_directory_path
 
 from . import aggregator_methods as am
 
@@ -26,15 +28,12 @@ class SRCFRAggregator(Aggregator):
         super().__init__()
         # Holds results from each client per round; Structure: {round_number: {contributor_name: data}}
         self.site_results: Dict[int, Dict[str, Any]] = {}  # Store results as a dictionary
+        self.logger = None
         self.agg_cache: Dict[str, Any] = {}
         self.agg_cache_dir: str = "./temp_agg_cache"
         self.transfer_reader_dir: str = "./temp_agg_transfer_dir"
         os.makedirs(self.agg_cache_dir, exist_ok=True)  # succeeds even if directory exists.
         os.makedirs(self.transfer_reader_dir, exist_ok=True)  # succeeds even if directory exists.
-
-        # Works as a cache store between several calls
-        # TODO: selcache_results: Dict[str, Any] = {}
-        # TODO: Create a tempdir and use that as cachedir for now
 
     def accept(self, site_result: Shareable, fl_ctx: FLContext) -> bool:
         """
@@ -50,10 +49,11 @@ class SRCFRAggregator(Aggregator):
         site_name = site_result.get_peer_prop(
             key=ReservedKey.IDENTITY_NAME, default=None)
         contribution_round = fl_ctx.get_prop(key="CURRENT_ROUND", default=None)
-        print(
-            f"Aggregator received contribution from {site_name}"
-            f" for round {contribution_round}"
-        )
+        if self.logger == None:
+            self.logger = NFCLogger('aggregator.log', get_output_directory_path(fl_ctx),
+                                    fl_ctx.get_prop(key="log_level", default="info"))
+
+        self.logger.info(f"Aggregator received contribution from {site_name} for round {contribution_round}")
         if contribution_round is None or site_name is None:
             return False  # Could log a warning/error here as well
 
@@ -99,8 +99,8 @@ class SRCFRAggregator(Aggregator):
         contribution_round = fl_ctx.get_prop(key="CURRENT_ROUND", default=None)
 
         if (contribution_round == 0):
-            agg_result = am.perform_remote_step1(self.site_results[contribution_round], self.agg_cache,
-                                                 self.agg_cache_dir)
+            agg_result = am.perform_remote_step1_generate_average_mask(self.site_results[contribution_round], self.agg_cache,
+                                                                       self.agg_cache_dir)
             self.agg_cache.update(agg_result['cache'])
             outgoing_shareable = Shareable()
             outgoing_shareable['result'] = agg_result['output']
@@ -110,8 +110,8 @@ class SRCFRAggregator(Aggregator):
             return outgoing_shareable
 
         elif (contribution_round == 1):
-            agg_result = am.perform_remote_step2(self.site_results[contribution_round], self.agg_cache,
-                                                 self.agg_cache_dir)
+            agg_result = am.perform_remote_step2_compute_global_model(self.site_results[contribution_round], self.agg_cache,
+                                                                      self.agg_cache_dir)
             self.agg_cache.update(agg_result['cache'])
             outgoing_shareable = Shareable()
             outgoing_shareable['result'] = agg_result['output']
@@ -122,11 +122,14 @@ class SRCFRAggregator(Aggregator):
             return outgoing_shareable
 
         elif (contribution_round == 2):
-            agg_result = am.perform_remote_step3(self.site_results[contribution_round], self.agg_cache,
-                                                 self.agg_cache_dir)
+            agg_result = am.perform_remote_step3_aggregate_metrics(self.site_results[contribution_round], self.agg_cache,
+                                                                   self.agg_cache_dir)
             self.agg_cache.update(agg_result.get('cache', {}))
             outgoing_shareable = Shareable()
             outgoing_shareable['result'] = agg_result['output']
+            # Formats and closes logs in the end
+            self.logger.close()
+            self.logger.format_log()
             return outgoing_shareable
 
         else:

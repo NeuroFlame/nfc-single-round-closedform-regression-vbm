@@ -10,7 +10,15 @@ from utils.data_transfer import *
 MNI_TEMPLATE = "/workspace/app/code/assets/MNI152_T1_1mm_brain.nii"
 
 
-def perform_remote_step1(site_results, agg_cache_dict, agg_cache_dir):
+def perform_remote_step1_generate_average_mask(site_results, agg_cache_dict, agg_cache_dir):
+    """
+    Computes the average of all nifti files to generate a mask and determines all the categorical covariates across all
+    the clients.
+
+    :param site_results: output sent from clients
+    :param agg_cache_dict: cache maintained by the aggregator
+    :return: output to be sent to the clients along with the updated cache data
+    """
     def return_uniques_and_counts(df):
         """Return unique-values of the categorical variables and their counts"""
         keys, count = dict(), dict()
@@ -49,7 +57,14 @@ def perform_remote_step1(site_results, agg_cache_dict, agg_cache_dir):
     return results
 
 
-def perform_remote_step2(site_results, agg_cache_dict, agg_cache_dir):
+def perform_remote_step2_compute_global_model(site_results, agg_cache_dict, agg_cache_dir):
+    """
+    Computes the global regression beta weights based on the client model parameters and sends it to the clients.
+
+    :param site_results: output sent from clients
+    :param agg_cache_dict: cache maintained by the aggregator
+    :return: output to be sent to the clients along with the updated cache data
+    """
     """The second function in the local computation chain"""
     site_ids = sorted(site_results.keys())
     user_id = site_ids[0]
@@ -105,7 +120,15 @@ def perform_remote_step2(site_results, agg_cache_dict, agg_cache_dir):
     return results
 
 
-def perform_remote_step3(site_results, agg_cache_dict, agg_cache_dir):
+def perform_remote_step3_aggregate_metrics(site_results, agg_cache_dict, agg_cache_dir):
+    """
+    Aggregates all the local performance metrics and computes global metrics.
+
+    :param site_results: output sent from clients
+    :param agg_cache_dict: cache maintained by the aggregator
+    :return: output to be sent to the clients along with the updated cache data
+    """
+
     from scipy import stats
     from numba import jit, prange
     @jit(nopython=True)
