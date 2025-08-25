@@ -7,9 +7,9 @@ from nvflare.apis.fl_constant import FLContextKey
 from nvflare.apis.fl_context import FLContext
 from nvflare.apis.shareable import Shareable
 from nvflare.apis.signal import Signal
-from utils.data_transfer import *
+from utils import data_transfer as dt
 from utils.logger import NFCLogger
-from utils.task_constants import *
+from utils import task_constants as tc
 from utils.utils import get_data_directory_path, get_output_directory_path
 
 from . import client_cache_store as ccs
@@ -50,38 +50,38 @@ class SRCFRExecutor(Executor):
         # Prepare the Shareable object to send the result to other components
         outgoing_shareable = Shareable()
 
-        if task_name == TASK_NAME_LOCAL_CLIENT_STEP1:
-            client_result = self._do_task_perform_client_step1(shareable, fl_ctx, abort_signal,
-                                                               cache_store.get_cache_dict(),
-                                                               cache_store.get_cache_dir())
+        if task_name == tc.TASK_CLIENT_STEP1_VALIDATE_INPUTS_GENERATE_MASK:
+            client_result = self._step1_validate_inputs_and_compute_mask(shareable, fl_ctx, abort_signal,
+                                                                         cache_store.get_cache_dict(),
+                                                                         cache_store.get_cache_dir())
             cache_store.update_cache_dict(client_result['cache'])
             outgoing_shareable['result'] = client_result['output']
-            outgoing_shareable["transfer_average_nifti"] = file_to_bytes(
+            outgoing_shareable["transfer_average_nifti"] = dt.file_to_bytes(
                 client_result['transfer_files']['average_nifti'])
 
 
-        elif task_name == TASK_NAME_LOCAL_CLIENT_STEP2:
-            client_result = self._do_task_perform_client_step2(shareable, fl_ctx, abort_signal,
-                                                               cache_store.get_cache_dict(),
-                                                               cache_store.get_cache_dir())
+        elif task_name == tc.TASK_CLIENT_STEP2_COMPUTE_LOCAL_MODEL:
+            client_result = self._step2_compute_local_model(shareable, fl_ctx, abort_signal,
+                                                            cache_store.get_cache_dict(),
+                                                            cache_store.get_cache_dir())
             cache_store.update_cache_dict(client_result['cache'])
             outgoing_shareable['result'] = client_result['output']
-            outgoing_shareable["transfer_xTx"] = file_to_bytes(
+            outgoing_shareable["transfer_xTx"] = dt.file_to_bytes(
                 client_result['transfer_files']['x_transpose_x_file_name'])
-            outgoing_shareable["transfer_xTy"] = file_to_bytes(
+            outgoing_shareable["transfer_xTy"] = dt.file_to_bytes(
                 client_result['transfer_files']['x_transpose_y_file_name'])
 
-        elif task_name == TASK_NAME_LOCAL_CLIENT_STEP3:
-            client_result = self._do_task_perform_client_step3(shareable, fl_ctx, abort_signal,
-                                                               cache_store.get_cache_dict(),
-                                                               cache_store.get_cache_dir())
+        elif task_name == tc.TASK_CLIENT_STEP3_COMPUTE_METRICS:
+            client_result = self._step3_compute_metrics(shareable, fl_ctx, abort_signal,
+                                                        cache_store.get_cache_dict(),
+                                                        cache_store.get_cache_dir())
             cache_store.update_cache_dict(client_result['cache'])
             outgoing_shareable['result'] = client_result['output']
 
-        elif task_name == TASK_NAME_LOCAL_CLIENT_STEP4:
-            client_result = self._do_task_perform_client_step4(shareable, fl_ctx, abort_signal,
-                                                               cache_store.get_cache_dict(),
-                                                               cache_store.get_cache_dir())
+        elif task_name == tc.TASK_CLIENT_STEP4_PERSIST_RESULTS:
+            client_result = self._step4_persist_results(shareable, fl_ctx, abort_signal,
+                                                        cache_store.get_cache_dict(),
+                                                        cache_store.get_cache_dir())
             cache_store.remove_cache()
             self.logger.format_log()
             # Sending empty sharable object as result
@@ -95,7 +95,7 @@ class SRCFRExecutor(Executor):
 
         return outgoing_shareable
 
-    def _do_task_perform_client_step1(
+    def _step1_validate_inputs_and_compute_mask(
             self,
             shareable: Shareable,
             fl_ctx: FLContext,
@@ -125,7 +125,7 @@ class SRCFRExecutor(Executor):
 
         return result
 
-    def _do_task_perform_client_step2(
+    def _step2_compute_local_model(
             self,
             shareable: Shareable,
             fl_ctx: FLContext,
@@ -151,7 +151,7 @@ class SRCFRExecutor(Executor):
 
         return result
 
-    def _do_task_perform_client_step3(
+    def _step3_compute_metrics(
             self,
             shareable: Shareable,
             fl_ctx: FLContext,
@@ -174,7 +174,7 @@ class SRCFRExecutor(Executor):
 
         return result
 
-    def _do_task_perform_client_step4(
+    def _step4_persist_results(
             self,
             shareable: Shareable,
             fl_ctx: FLContext,

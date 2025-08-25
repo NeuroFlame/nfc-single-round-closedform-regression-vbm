@@ -91,6 +91,6 @@ To locally run this computation, please clone this repo and run the following:
 
 1. _./dockerRun.sh_ (This opens a bash terminal inside the docker container. Run the following commands inside the container terminal.)
 
-2. _python makeJob.py site1,site2,site3,site4_ 
+2. _python makeJob.py site1,site2_ 
 
 3. _nvflare simulator ./job_

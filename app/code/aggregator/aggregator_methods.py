@@ -3,9 +3,9 @@ import os
 import jsonpickle
 import numpy as np
 import pandas as pd
-from utils.data_transfer import *
+from utils import data_transfer as dt
 
-# from ..utils.data_transfer import *
+#from ..utils import data_transfer as dt
 
 MNI_TEMPLATE = "/workspace/app/code/assets/MNI152_T1_1mm_brain.nii"
 
@@ -75,8 +75,8 @@ def perform_remote_step2_compute_global_model(site_results, agg_cache_dict, agg_
     #    site_results[site]["local_stats_list"] for site in site_results
     # ]
 
-    beta_vector_0 = sum([load_binary(site_results[site]["x_transpose_x_file_name"]) for site in site_ids])
-    beta_vector_1 = sum([load_binary(site_results[site]["x_transpose_y_file_name"]) for site in site_ids])
+    beta_vector_0 = sum([dt.load_binary(site_results[site]["x_transpose_x_file_name"]) for site in site_ids])
+    beta_vector_1 = sum([dt.load_binary(site_results[site]["x_transpose_y_file_name"]) for site in site_ids])
 
     all_lambdas = [site_results[site]["lambda"] for site in site_results]
 
@@ -99,10 +99,10 @@ def perform_remote_step2_compute_global_model(site_results, agg_cache_dict, agg_
     dof_global = sum(count_y_local) - avg_beta_vector.shape[1]
 
     avg_beta_vector_file_name = os.path.join(agg_cache_dir, "avg_beta_vector.npy")
-    save_binary(avg_beta_vector_file_name, avg_beta_vector)
+    dt.save_binary(avg_beta_vector_file_name, avg_beta_vector)
 
     mean_y_global_file_name = os.path.join(agg_cache_dir, "mean_y_global.npy")
-    save_binary(mean_y_global_file_name, mean_y_global)
+    dt.save_binary(mean_y_global_file_name, mean_y_global)
 
     output_dict = {}
 
@@ -145,7 +145,7 @@ def perform_remote_step3_aggregate_metrics(site_results, agg_cache_dict, agg_cac
 
     X_labels = agg_cache_dict["X_labels"]
 
-    avg_beta_vector = load_binary(os.path.join(agg_cache_dir, agg_cache_dict["avg_beta_vector"]))
+    avg_beta_vector = dt.load_binary(os.path.join(agg_cache_dir, agg_cache_dict["avg_beta_vector"]))
     dof_global = agg_cache_dict["dof_global"]
 
     SSE_global = sum([np.array(site_results[site]["SSE_local"]) for site in site_results])

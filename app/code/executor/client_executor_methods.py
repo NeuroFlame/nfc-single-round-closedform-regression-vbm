@@ -4,10 +4,10 @@ import os.path
 import numpy as np
 import pandas as pd
 from numba import jit
-from utils.data_transfer import *
+from utils import data_transfer as dt
 
 from . import client_constants
-# from ..utils.data_transfer import *
+# from ..utils import data_transfer as dt
 from . import client_input_preprocessor as cip
 from . import client_nifti_helper as cnh
 
@@ -37,7 +37,7 @@ def perform_client_step1_validate_inputs_and_compute_mask(covariates_path, data_
     # converting all the values of the reference columns to lowercase as
     # all the covariate values are converted to lowercase while parsing
     reference_dict = dict((k, v.lower()) for k, v in computation_parameters.get("ReferenceColumns",
-                                                                                client_constants.DEFAULT_ReferenceColumns).items());
+                                                                                client_constants.DEFAULT_ReferenceColumns).items())
 
     # Handle dependent nifti files
     threshold = computation_parameters.get("Threshold", client_constants.DEFAULT_Threshold)
@@ -81,19 +81,18 @@ def perform_local_step2_compute_local_model(agg_result, data_path, logger, cache
         3. Updates site as a covariate in X
         4. Computes XtransposeX and XtransposeY matrices and sends them to aggregator along with other model parameters.
 
-        :param covariates_path: user path provided for the covariates.csv file
+        :param agg_result: results received from aggregator
         :param data_path: user path provided that has all the nifti files for the subjects in covariates.csv
-        :param computation_parameters: input parameters
         :param logger: logger to save logs
         :param cache_dict: client cache dict
         :param cache_dir: client cache dir
     """
     # save mask and downsampled mni in cache
     mask_file_name = os.path.join(cache_dir, "mask.nii")
-    bytes_to_file(mask_file_name, agg_result["mask_file"])
+    dt.bytes_to_file(mask_file_name, agg_result["mask_file"])
 
     downsampled_mni_file_name = os.path.join(cache_dir, "downsampled_mni.nii")
-    bytes_to_file(downsampled_mni_file_name, agg_result["downsampled_mni"])
+    dt.bytes_to_file(downsampled_mni_file_name, agg_result["downsampled_mni"])
 
     X = pd.read_json(cache_dict["X"], orient='split')
 
@@ -118,14 +117,14 @@ def perform_local_step2_compute_local_model(agg_result, data_path, logger, cache
     Xtransposey_local = cip.multiply(biased_X, y)
 
     # Writing covariates and dependents to cache as files
-    save_binary(os.path.join(cache_dir, "X.npy"), biased_X)
-    save_binary(os.path.join(cache_dir, "y.npy"), y)
+    dt.save_binary(os.path.join(cache_dir, "X.npy"), biased_X)
+    dt.save_binary(os.path.join(cache_dir, "y.npy"), y)
 
     x_transpose_x_file_name = os.path.join(cache_dir, "XTX.npy")
-    save_binary(x_transpose_x_file_name, XtransposeX_local)
+    dt.save_binary(x_transpose_x_file_name, XtransposeX_local)
 
     x_transpose_y_file_name = os.path.join(cache_dir, "XTy.npy")
-    save_binary(x_transpose_y_file_name, Xtransposey_local)
+    dt.save_binary(x_transpose_y_file_name, Xtransposey_local)
 
     output_dict = {
         "mean_y_local": meanY_vector.tolist(),
@@ -159,7 +158,7 @@ def perform_local_step3_compute_metrics_with_global_params(agg_result, logger, c
     """
         Computes the SSE_local, SST_local and varX_matrix_local based on the global aggregated parameters
 
-        :param agg_results: results received from aggregator
+        :param agg_result: results received from aggregator
         :param logger: logger to save logs
         :param cache_dict: client cache dict
         :param cache_dir: client cache dir
@@ -167,16 +166,16 @@ def perform_local_step3_compute_metrics_with_global_params(agg_result, logger, c
     """
     # save avg_beta_vector and mean_y_global files from aggregator in cache_dir
     avg_beta_vector_file_name = os.path.join(cache_dir, "avg_beta_vector.npy")
-    bytes_to_file(avg_beta_vector_file_name, agg_result["avg_beta_vector"])
+    dt.bytes_to_file(avg_beta_vector_file_name, agg_result["avg_beta_vector"])
 
     mean_y_global_file_name = os.path.join(cache_dir, "mean_y_global.npy")
-    bytes_to_file(mean_y_global_file_name, agg_result["mean_y_global"])
+    dt.bytes_to_file(mean_y_global_file_name, agg_result["mean_y_global"])
 
-    biased_X = load_binary(os.path.join(cache_dir, cache_dict["covariates"]))
-    y = load_binary(os.path.join(cache_dir, cache_dict["dependents"]))
+    biased_X = dt.load_binary(os.path.join(cache_dir, cache_dict["covariates"]))
+    y = dt.load_binary(os.path.join(cache_dir, cache_dict["dependents"]))
 
-    avg_beta_vector = load_binary(avg_beta_vector_file_name)
-    mean_y_global = load_binary(mean_y_global_file_name)
+    avg_beta_vector = dt.load_binary(avg_beta_vector_file_name)
+    mean_y_global = dt.load_binary(mean_y_global_file_name)
 
     varX_matrix_local = cip.multiply(biased_X, biased_X)
 
@@ -200,13 +199,13 @@ def perform_local_step4_persist_results(agg_result, logger, cache_dict, cache_di
     """
        Persists results in various file formats
 
-       :param agg_results: results received from aggregator
+       :param agg_result: results received from aggregator
        :param logger: logger to save logs
        :param cache_dict: client cache dict
        :param cache_dir: client cache dir
        :param output_dir: output directory which saves all the regression .png and .nii files
     """
-    avg_beta_vector = load_binary(cache_dict["avg_beta_vector_file_name"])
+    avg_beta_vector = dt.load_binary(cache_dict["avg_beta_vector_file_name"])
     r_squared_global = np.asarray(agg_result["r_squared_global"])
     ts_global = np.asarray(agg_result["ts_global"])
     ps_global = np.asarray(agg_result["ps_global"])
@@ -369,7 +368,7 @@ def _local_stats_to_dict_numba(X, y):
         try:
             pinv = np.linalg.inv(X.T @ X)
         except np.linalg.LinAlgError:
-            cond = np.linalg.cond(X.T @ X);
+            cond = np.linalg.cond(X.T @ X)
             raise Exception(f"X.^T*X matrix at local is Singular with condition number: {cond}")
 
         return gather_local_stats_helper(X, y, pinv)

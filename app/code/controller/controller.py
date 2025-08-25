@@ -5,7 +5,7 @@ from nvflare.apis.fl_context import FLContext
 from nvflare.apis.impl.controller import Controller, Task, ClientTask
 from nvflare.apis.shareable import Shareable
 from nvflare.apis.signal import Signal
-from utils.task_constants import *
+from utils import task_constants as tc
 from utils.utils import get_parameters_file_path
 
 
@@ -50,7 +50,7 @@ class SRCFRController(Controller):
         :param fl_ctx: Federated learning context for this run.
         """
         # Assign the aggregator to the controller
-        self.srr_aggregator = self._engine.get_component(SRCFR_AGGREGATOR_ID)
+        self.srr_aggregator = self._engine.get_component(tc.SRCFR_AGGREGATOR_ID)
         # Load and set computation parameters for the sites
         self._load_and_set_computation_parameters(fl_ctx)
 
@@ -70,7 +70,7 @@ class SRCFRController(Controller):
 
         # Broadcast the regression task and send site results to the aggregator
         self._broadcast_task(
-            task_name=TASK_NAME_LOCAL_CLIENT_STEP1,
+            task_name=tc.TASK_CLIENT_STEP1_VALIDATE_INPUTS_GENERATE_MASK,
             data=Shareable(),
             result_cb=self._accept_site_regression_result,
             fl_ctx=fl_ctx,
@@ -84,7 +84,7 @@ class SRCFRController(Controller):
         fl_ctx.set_prop(key="CURRENT_ROUND", value=1)
 
         self._broadcast_task(
-            task_name=TASK_NAME_LOCAL_CLIENT_STEP2,
+            task_name=tc.TASK_CLIENT_STEP2_COMPUTE_LOCAL_MODEL,
             data=aggregate_result,
             result_cb=self._accept_site_regression_result,
             fl_ctx=fl_ctx,
@@ -98,7 +98,7 @@ class SRCFRController(Controller):
         fl_ctx.set_prop(key="CURRENT_ROUND", value=2)
 
         self._broadcast_task(
-            task_name=TASK_NAME_LOCAL_CLIENT_STEP3,
+            task_name=tc.TASK_CLIENT_STEP3_COMPUTE_METRICS,
             data=aggregate_result,
             result_cb=self._accept_site_regression_result,
             fl_ctx=fl_ctx,
@@ -112,7 +112,7 @@ class SRCFRController(Controller):
 
         # Broadcast the global aggregated results to all sites
         self._broadcast_task(
-            task_name=TASK_NAME_LOCAL_CLIENT_STEP4,
+            task_name=tc.TASK_CLIENT_STEP4_PERSIST_RESULTS,
             data=aggregate_result,
             result_cb=None,
             fl_ctx=fl_ctx,
