@@ -8,7 +8,7 @@ from utils import data_transfer as dt
 #from ..utils import data_transfer as dt
 
 MNI_TEMPLATE = "/workspace/app/code/assets/MNI152_T1_1mm_brain.nii"
-
+#MNI_TEMPLATE="./simulate_job/app_server/code/assets/MNI152_T1_1mm_brain.nii" #TODO enable only for IDE debugging
 
 def perform_remote_step1_generate_average_mask(site_results, agg_cache_dict, agg_cache_dir):
     """

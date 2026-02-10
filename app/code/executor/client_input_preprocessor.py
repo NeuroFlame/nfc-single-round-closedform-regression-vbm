@@ -37,6 +37,7 @@ def validate_and_get_inputs(covariates_path: str, data_path: str, computation_pa
             logger.info(error_message)
             return False, None, None
 
+        covariates = covariates[expected_covariates]
         logger.info(f'-- Checking covariate file : {str(covariates_path)}')
         X = convert_data_to_given_type(covariates, expected_covariates_info, logger,
                                        ignore_subjects_with_missing_data)
@@ -129,7 +130,8 @@ def convert_data_to_given_type(data_df: pd.DataFrame, column_info: dict, logger:
     if len(all_rows_to_ignore) > 0:
         if ignore_subjects_with_missing_data:
             logger.info(f'-- Ignored following rows with incorrect column values: {str(all_rows_to_ignore)}')
-            data_df.drop(data_df.index[all_rows_to_ignore], inplace=True)
+            #data_df.drop(data_df.index[all_rows_to_ignore], inplace=True)
+            data_df.drop(index=all_rows_to_ignore, inplace=True)
         else:
             err_msg = (f'Following rows have empty or invalid entries for columns. Either choose to ignore these rows '
                        f'or correct the data and try again. See log file for details: {str(all_rows_to_ignore)}')
@@ -197,7 +199,7 @@ def _validate_data_datatypes(data_df: pd.DataFrame, column_info: dict, logger: N
                 temp = data_df[column_name].astype('object')
             elif column_datatype.strip().lower() == "bool":
                 # Converting first to 'int' type to make sure all the possible values are converted correctly
-                temp = pd.to_numeric(data_df[column_name], errors='coerce').astype('int')  # or .astype('Int64')
+                temp = pd.to_numeric(data_df[column_name], errors='coerce').astype('Int64')  # or .astype('int')
             else:
                 err_msg = (f'Invalid datatype provided in the input for column : {column_name} and datatype: '
                            f'{column_datatype}. Allowed datatypes are int, float, str, bool.')

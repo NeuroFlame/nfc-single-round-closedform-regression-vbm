@@ -83,7 +83,7 @@ class SRCFRExecutor(Executor):
                                                         cache_store.get_cache_dict(),
                                                         cache_store.get_cache_dir())
             cache_store.remove_cache()
-            self.logger.format_log()
+            #self.logger.format_log()
             # Sending empty sharable object as result
 
         else:

@@ -94,3 +94,10 @@ To locally run this computation, please clone this repo and run the following:
 2. _python makeJob.py site1,site2_ 
 
 3. _nvflare simulator ./job_
+
+#### Debug this computation using IDE
+To debug the code using IDE, run "debugger.py" script and have the following debug configurations:
+
+1. **PARAMETERS value :** "./app -w ./myworkspace -n 1 -c site1"  #change number of sites based on testing
+
+2. **Environment Variables value:** "PYTHONUNBUFFERED=1;PYTHONPATH=<your_local_full_path>/neuroflame_comp_single_round_closed_form_regression_vbm/app/code"

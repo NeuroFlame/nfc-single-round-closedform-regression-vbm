@@ -89,7 +89,8 @@ class NFCLogger:
             })
 
         # Write the log record to file as a new line.
-        self.file.write(log_line + "\n")
+        #self.file.write(log_line + "\n")
+        self.file.write(args[0] + "\n")
         self.file.flush()  # Force immediate disk write
 
     # Public methods for the various log levels:
