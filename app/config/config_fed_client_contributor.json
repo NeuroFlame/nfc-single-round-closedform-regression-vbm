@@ -1,0 +1,20 @@
+{
+  "format_version": 2,
+  "executors": [
+    {
+      "tasks": [
+        "step1_validate_inputs_generate_mask",
+        "step2_compute_local_model",
+        "step3_compute_metrics",
+        "receive_results"
+      ],
+      "executor": {
+        "path": "executor.executor.SRCFRExecutor",
+        "args": {}
+      }
+    }
+  ],
+  "task_result_filters": [],
+  "task_data_filters": [],
+  "components": []
+}

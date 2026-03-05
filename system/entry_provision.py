@@ -44,29 +44,47 @@ def main():
     path_run = os.path.join('/provisioning')
 
     # Extract arguments from provision input
-    user_ids = provision_input.get('user_ids')
+    user_ids = provision_input.get('user_ids', [])
+    user_roles = provision_input.get('user_roles', {}) 
     computation_parameters = provision_input.get('computation_parameters')
     fed_learn_port = provision_input.get('fed_learn_port')
     admin_port = provision_input.get('admin_port')
     host_identifier = provision_input.get('host_identifier')
-    
-    print(f'user_ids: {user_ids}')
-    print(f'path_run: {path_run}')
-    print(f'computation_parameters: {computation_parameters}')
-    print(f'fed_learn_port: {fed_learn_port}')
-    print(f'admin_port: {admin_port}')
-    print(f'host_identifier: {host_identifier}')
 
-    
+    # Optional NeuroFLAME fileServer context (for results distribution)
+    # These are passed through to runKits/parameters.json so the NVFlare server can upload results.zip
+    neuroflame_context = {
+        "file_server_url": provision_input.get("fileServerUrl") or provision_input.get("fileserver_url") or provision_input.get("file_server_url"),
+        "consortium_id": provision_input.get("consortiumId") or provision_input.get("consortium_id"),
+        "run_id": provision_input.get("runId") or provision_input.get("run_id"),
+        "token": provision_input.get("downloadToken") or provision_input.get("uploadToken") or provision_input.get("token"),
+    }
+    # Drop empty values
+    neuroflame_context = {k: v for k, v in neuroflame_context.items() if v}
+    if neuroflame_context:
+        logger.info(f"neuroflame_context keys present: {list(neuroflame_context.keys())}")
+
+
+    logger.info(f"user_ids: {user_ids}")
+    logger.info(f"user_roles: {user_roles}")
+    logger.info(f'computation_parameters: {computation_parameters}')
+    logger.info(f"path_run: {path_run}")
+    logger.info(f"fed_learn_port: {fed_learn_port}")
+    logger.info(f"admin_port: {admin_port}")
+    logger.info(f"host_identifier: {host_identifier}")
+
     # Call the provision_run function with the loaded arguments
     provision_run(
         user_ids=user_ids,
+        user_roles=user_roles,
         path_run=path_run,
         path_app="/workspace/app",
         computation_parameters=computation_parameters,
         fed_learn_port=fed_learn_port,
         admin_port=admin_port,
         host_identifier=host_identifier,
+        neuroflame_context=neuroflame_context,
+
     )
 
 if __name__ == '__main__':
