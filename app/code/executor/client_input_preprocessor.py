@@ -209,6 +209,8 @@ def _validate_data_datatypes(data_df: pd.DataFrame, column_info: dict, logger: N
             # Check for null or NaNs in the data
             rows_to_ignore = data_df[temp.isnull()].index.tolist()
 
+            all_rows_to_ignore = all_rows_to_ignore.union(rows_to_ignore)
+
             # Check for emtpy values in the data
             if column_datatype.strip().lower() == "str":
                 rows_to_ignore = data_df[temp.str.strip() == ''].index
