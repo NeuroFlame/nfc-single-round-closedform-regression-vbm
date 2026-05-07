@@ -1,4 +1,6 @@
 import os
+import shutil
+import traceback
 from typing import Dict, Any
 
 from nvflare.apis.fl_constant import ReservedKey
@@ -45,8 +47,11 @@ class SRCFRAggregator(Aggregator):
         :param fl_ctx: The federated learning context for this run.
         :return: Boolean indicating if the result was successfully accepted.
         """
-        site_name = site_result.get_peer_prop(
+        site_id = site_result.get_peer_prop(
             key=ReservedKey.IDENTITY_NAME, default=None)
+        computation_parameters = fl_ctx.get_prop(key="COMPUTATION_PARAMETERS", default={})
+        site_id_name_map = computation_parameters.get("site_id_name_map", {})
+        site_name = site_id_name_map.get(site_id, site_id)
         contribution_round = fl_ctx.get_prop(key="CURRENT_ROUND", default=None)
         if self.logger == None:
             self.logger = NFCLogger('aggregator.log', get_output_directory_path(fl_ctx),
@@ -97,39 +102,54 @@ class SRCFRAggregator(Aggregator):
         """
         contribution_round = fl_ctx.get_prop(key="CURRENT_ROUND", default=None)
 
-        if (contribution_round == 0):
-            agg_result = am.perform_remote_step1_generate_average_mask(self.site_results[contribution_round], self.agg_cache,
+        try:
+            if (contribution_round == 0):
+                computation_parameters = fl_ctx.get_prop(key="COMPUTATION_PARAMETERS", default={})
+                self.agg_cache["site_id_name_map"] = computation_parameters.get("site_id_name_map", {})
+                agg_result = am.perform_remote_step1_generate_average_mask(self.site_results[contribution_round], self.agg_cache,
+                                                                           self.agg_cache_dir)
+                self.agg_cache.update(agg_result['cache'])
+                outgoing_shareable = Shareable()
+                outgoing_shareable['result'] = agg_result['output']
+                outgoing_shareable['result']['mask_file'] = dt.file_to_bytes(agg_result['transfer_files']['mask_file'])
+                outgoing_shareable['result']['downsampled_mni'] = dt.file_to_bytes(
+                    agg_result['transfer_files']['downsampled_mni'])
+                return outgoing_shareable
+
+            elif (contribution_round == 1):
+                agg_result = am.perform_remote_step2_compute_global_model(self.site_results[contribution_round], self.agg_cache,
+                                                                          self.agg_cache_dir)
+                self.agg_cache.update(agg_result['cache'])
+                outgoing_shareable = Shareable()
+                outgoing_shareable['result'] = agg_result['output']
+                outgoing_shareable['result']['avg_beta_vector'] = dt.file_to_bytes(
+                    agg_result['transfer_files']['avg_beta_vector'])
+                outgoing_shareable['result']['mean_y_global'] = dt.file_to_bytes(agg_result['transfer_files']['mean_y_global'])
+
+                return outgoing_shareable
+
+            elif (contribution_round == 2):
+                agg_result = am.perform_remote_step3_aggregate_metrics(self.site_results[contribution_round], self.agg_cache,
                                                                        self.agg_cache_dir)
-            self.agg_cache.update(agg_result['cache'])
-            outgoing_shareable = Shareable()
-            outgoing_shareable['result'] = agg_result['output']
-            outgoing_shareable['result']['mask_file'] = dt.file_to_bytes(agg_result['transfer_files']['mask_file'])
-            outgoing_shareable['result']['downsampled_mni'] = dt.file_to_bytes(
-                agg_result['transfer_files']['downsampled_mni'])
-            return outgoing_shareable
+                self.agg_cache.update(agg_result.get('cache', {}))
+                outgoing_shareable = Shareable()
+                outgoing_shareable['result'] = agg_result['output']
 
-        elif (contribution_round == 1):
-            agg_result = am.perform_remote_step2_compute_global_model(self.site_results[contribution_round], self.agg_cache,
-                                                                      self.agg_cache_dir)
-            self.agg_cache.update(agg_result['cache'])
-            outgoing_shareable = Shareable()
-            outgoing_shareable['result'] = agg_result['output']
-            outgoing_shareable['result']['avg_beta_vector'] = dt.file_to_bytes(
-                agg_result['transfer_files']['avg_beta_vector'])
-            outgoing_shareable['result']['mean_y_global'] = dt.file_to_bytes(agg_result['transfer_files']['mean_y_global'])
+                output_dir = get_output_directory_path(fl_ctx)
+                mask_src = os.path.join(self.agg_cache_dir, "mask.nii")
+                mask_dst = os.path.join(output_dir, "mask.nii")
+                shutil.copy2(mask_src, mask_dst)
+                self.logger.info(f"Copied mask.nii to results folder: {mask_dst}")
 
-            return outgoing_shareable
+                # Formats and closes logs in the end
+                self.logger.close()
+                #self.logger.format_log()
+                return outgoing_shareable
 
-        elif (contribution_round == 2):
-            agg_result = am.perform_remote_step3_aggregate_metrics(self.site_results[contribution_round], self.agg_cache,
-                                                                   self.agg_cache_dir)
-            self.agg_cache.update(agg_result.get('cache', {}))
-            outgoing_shareable = Shareable()
-            outgoing_shareable['result'] = agg_result['output']
-            # Formats and closes logs in the end
+            else:
+                return Shareable()  # Return an empty Shareable if no data to aggregate
+
+        except Exception as e:
+            self.logger.error(f"Exception in aggregate (round {contribution_round}): {traceback.format_exc()}")
             self.logger.close()
-            #self.logger.format_log()
-            return outgoing_shareable
-
-        else:
-            return Shareable()  # Return an empty Shareable if no data to aggregate
+            raise

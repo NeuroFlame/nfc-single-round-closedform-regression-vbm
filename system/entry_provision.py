@@ -44,12 +44,16 @@ def main():
     path_run = os.path.join('/provisioning')
 
     # Extract arguments from provision input
-    user_ids = provision_input.get('user_ids')
-    computation_parameters = provision_input.get('computation_parameters')
+    users = provision_input.get('users')  # list of {id, name}
+    user_ids = [u['id'] for u in users]
+    site_id_name_map = {u['id']: u['name'] for u in users}
+    computation_parameters_dict = json.loads(provision_input.get('computation_parameters'))
+    computation_parameters_dict['site_id_name_map'] = site_id_name_map
+    computation_parameters = json.dumps(computation_parameters_dict)
     fed_learn_port = provision_input.get('fed_learn_port')
     admin_port = provision_input.get('admin_port')
     host_identifier = provision_input.get('host_identifier')
-    
+
     print(f'user_ids: {user_ids}')
     print(f'path_run: {path_run}')
     print(f'computation_parameters: {computation_parameters}')

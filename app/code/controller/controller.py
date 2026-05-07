@@ -114,10 +114,18 @@ class SRCFRController(Controller):
         self._broadcast_task(
             task_name=tc.TASK_CLIENT_STEP4_PERSIST_RESULTS,
             data=aggregate_result,
-            result_cb=None,
+            result_cb=self._accept_step4_result,
             fl_ctx=fl_ctx,
             abort_signal=abort_signal,
         )
+
+    def _accept_step4_result(self, client_task: ClientTask, fl_ctx: FLContext) -> bool:
+        """
+        Acknowledgement callback for step 4 (persist results). No aggregation is needed;
+        this callback exists so that broadcast_and_wait tracks client completions and keeps
+        the server alive until all clients finish writing their output files.
+        """
+        return True
 
     def _accept_site_regression_result(self, client_task: ClientTask, fl_ctx: FLContext) -> bool:
         """
