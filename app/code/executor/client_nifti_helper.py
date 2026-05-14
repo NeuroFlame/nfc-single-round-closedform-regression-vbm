@@ -1,5 +1,7 @@
 import os
 
+import matplotlib
+matplotlib.use('Agg')
 import nibabel as nib
 import numpy as np
 import pandas as pd

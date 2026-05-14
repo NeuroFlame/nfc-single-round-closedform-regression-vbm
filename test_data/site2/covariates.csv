@@ -35,7 +35,7 @@ M52286167_swc1t1_brain.nii, MGH,TRUE,23, M
 M52289199_swc1t1_brain.nii, MGH,TRUE,34, F
 M52290120_swc1t1_brain.nii, MGH,TRUE,39, F
 M52291410_swc1t1_brain.nii, MGH,TRUE,19, M
-M52293397_swc1t1_brain.nii, MGH,TRUE,48, F
+M52293397_swc1t1_brain.nii, MGH,,48, F
 M52295595_swc1t1_brain.nii, MGH,TRUE,24, M
 M52296423_swc1t1_brain.nii, MGH,TRUE,22, M
 M52297499_swc1t1_brain.nii, MGH,TRUE,24, F
@@ -48,7 +48,7 @@ M52203703_swc1t1_brain.nii, MGH,FALSE,54, F
 M52204446_swc1t1_brain.nii, MGH,FALSE,24, M
 M52205070_swc1t1_brain.nii, MGH,FALSE,40, M
 M52210421_swc1t1_brain.nii, MGH,FALSE,23, F
-M52211523_swc1t1_brain.nii, MGH,FALSE,49, F
+M52211523_swc1t1_brain.nii, MGH,FALSE,49, 
 M52214646_swc1t1_brain.nii, MGH,FALSE,20, F
 M52214732_swc1t1_brain.nii, MGH,FALSE,25, F
 M52214777_swc1t1_brain.nii, MGH,FALSE,31, M
@@ -58,7 +58,7 @@ M52215821_swc1t1_brain.nii, MGH,FALSE,29, M
 M52216465_swc1t1_brain.nii, MGH,FALSE,22, M
 M52216899_swc1t1_brain.nii, MGH,FALSE,27, F
 M52217742_swc1t1_brain.nii, MGH,FALSE,27, F
-M52217983_swc1t1_brain.nii, MGH,FALSE,39, F
+M52217983_swc1t1_brain.nii, MGH,FALSE,, F
 M52218455_swc1t1_brain.nii, MGH,FALSE,30, M
 M52222147_swc1t1_brain.nii, MGH,FALSE,30, M
 M52223206_swc1t1_brain.nii, MGH,FALSE,27, M
@@ -69,12 +69,12 @@ M52228456_swc1t1_brain.nii, MGH,FALSE,20, M
 M52229861_swc1t1_brain.nii, MGH,FALSE,47, F
 M52233758_swc1t1_brain.nii, MGH,FALSE,20, F
 M52234303_swc1t1_brain.nii, MGH,FALSE,43, F
-M52235786_swc1t1_brain.nii, MGH,FALSE,25, F
+M52235786_swc1t1_brain.nii, ,FALSE,25, F
 M52237173_swc1t1_brain.nii, MGH,FALSE,42, M
 M52238988_swc1t1_brain.nii, MGH,FALSE,40, F
 M52239358_swc1t1_brain.nii, MGH,FALSE,33, M
 M52241218_swc1t1_brain.nii, MGH,FALSE,23, F
-M52243274_swc1t1_brain.nii, MGH,FALSE,22, M
+M52243274_swc1t1_brain.nii, MGH,,22, M
 M52243619_swc1t1_brain.nii, MGH,FALSE,25, F
 M52244480_swc1t1_brain.nii, MGH,FALSE,33, M
 M52245372_swc1t1_brain.nii, MGH,FALSE,22, M
@@ -86,7 +86,7 @@ M52254014_swc1t1_brain.nii, MGH,FALSE,19, M
 M52254382_swc1t1_brain.nii, MGH,FALSE,46, F
 M52256830_swc1t1_brain.nii, MGH,FALSE,20, F
 M52260735_swc1t1_brain.nii, MGH,FALSE,28, M
-M52261564_swc1t1_brain.nii, MGH,FALSE,27, F
+M52261564_swc1t1_brain.nii, MGH,FALSE,, F
 M52269912_swc1t1_brain.nii, MGH,FALSE,21, M
 M52270333_swc1t1_brain.nii, MGH,FALSE,20, M
 M52271576_swc1t1_brain.nii, MGH,FALSE,22, F
@@ -100,7 +100,7 @@ M52282305_swc1t1_brain.nii, MGH,FALSE,27, M
 M52284000_swc1t1_brain.nii, MGH,FALSE,27, M
 M52285768_swc1t1_brain.nii, MGH,FALSE,19, F
 M52288332_swc1t1_brain.nii, MGH,FALSE,24, M
-M52289654_swc1t1_brain.nii, MGH,FALSE,28, M
+M52289654_swc1t1_brain.nii, MGH,FALSE,28,
 M52289720_swc1t1_brain.nii, MGH,FALSE,37, F
 M52296258_swc1t1_brain.nii, MGH,FALSE,23, M
 M52297972_swc1t1_brain.nii, MGH,FALSE,44, F

@@ -66,6 +66,8 @@ def perform_remote_step2_compute_global_model(site_results, agg_cache_dict, agg_
     :return: output to be sent to the clients along with the updated cache data
     """
     """The second function in the local computation chain"""
+    site_id_name_map = agg_cache_dict.get("site_id_name_map", {})
+    site_results = {site_id_name_map.get(k, k): v for k, v in site_results.items()}
     site_ids = sorted(site_results.keys())
     user_id = site_ids[0]
 
@@ -106,12 +108,26 @@ def perform_remote_step2_compute_global_model(site_results, agg_cache_dict, agg_
 
     output_dict = {}
 
+    shared_local_stats = {}
+    for site in site_ids:
+        if site_results[site].get("share_local_stats"):
+            shared_local_stats[site] = {
+                "local_beta_vector": site_results[site]["local_beta_vector"],
+                "local_pvalues": site_results[site]["local_pvalues"],
+                "local_tvalues": site_results[site]["local_tvalues"],
+                "local_rsquared": site_results[site]["local_rsquared"],
+                "local_X_labels": site_results[site]["local_X_labels"],
+            }
+
     cache_dict = {
         "avg_beta_vector": "avg_beta_vector.npy",
         "dof_global": dof_global.tolist(),
         "X_labels": X_labels,
-        # "local_stats_dict": all_local_stats_dicts,
+        "site_id_name_map": site_id_name_map,
     }
+    if shared_local_stats:
+        cache_dict["shared_local_stats"] = shared_local_stats
+
     results = {'output': {}, 'cache': cache_dict,
                "transfer_files": {"avg_beta_vector": avg_beta_vector_file_name,
                                   "mean_y_global": mean_y_global_file_name}
@@ -145,6 +161,9 @@ def perform_remote_step3_aggregate_metrics(site_results, agg_cache_dict, agg_cac
 
     X_labels = agg_cache_dict["X_labels"]
 
+    site_id_name_map = agg_cache_dict.get("site_id_name_map", {})
+    site_results = {site_id_name_map.get(k, k): v for k, v in site_results.items()}
+
     avg_beta_vector = dt.load_binary(os.path.join(agg_cache_dir, agg_cache_dict["avg_beta_vector"]))
     dof_global = agg_cache_dict["dof_global"]
 
@@ -163,9 +182,12 @@ def perform_remote_step3_aggregate_metrics(site_results, agg_cache_dict, agg_cac
         "r_squared_global": r_squared_global.tolist(),
         "MSE": MSE.tolist(),
         "ts_global": ts_global.tolist(),
-        "ps_global": ps_global,
+        "ps_global": [p.tolist() for p in ps_global],
         "X_labels": X_labels
     }
+    if "shared_local_stats" in agg_cache_dict:
+        output_dict["shared_local_stats"] = agg_cache_dict["shared_local_stats"]
+
     results = {"output": output_dict, "cache": {}}
 
     return results

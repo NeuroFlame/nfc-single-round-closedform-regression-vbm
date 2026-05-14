@@ -39,8 +39,8 @@ def validate_and_get_inputs(covariates_path: str, data_path: str, computation_pa
 
         covariates = covariates[expected_covariates]
         logger.info(f'-- Checking covariate file : {str(covariates_path)}')
-        X = convert_data_to_given_type(covariates, expected_covariates_info, logger,
-                                       ignore_subjects_with_missing_data)
+        X, invalid_covariate_subjects = convert_data_to_given_type(covariates, expected_covariates_info, logger,
+                                                                    ignore_subjects_with_missing_data)
         X = convert_bool_type_to_object(X, expected_covariates_info, logger)
 
         # dummy encoding categorical variables
@@ -85,13 +85,28 @@ def validate_and_get_inputs(covariates_path: str, data_path: str, computation_pa
             logger.error(error_message)
             raise Exception(error_message)
 
+        # Build omissions report (populated only when IgnoreSubjectsWithMissingData is True)
+        omissions_report = {
+            "invalid_covariates": [str(s) for s in invalid_covariate_subjects],
+            "missing_nifti":      [str(s) for s in missing_dependent_files],
+            "invalid_nifti":      [str(s) for s in invalid_dependent_data_files],
+        }
+        total_omitted = (len(invalid_covariate_subjects)
+                         + len(missing_dependent_files)
+                         + len(invalid_dependent_data_files))
+        if total_omitted > 0:
+            logger.info(f'-- Omissions summary: {total_omitted} subject(s) excluded '
+                        f'(invalid_covariates={len(invalid_covariate_subjects)}, '
+                        f'missing_nifti={len(missing_dependent_files)}, '
+                        f'invalid_nifti={len(invalid_dependent_data_files)})')
+
         # If all checks pass
-        return True, X
+        return True, X, omissions_report
 
     except Exception as e:
         error_message = f"An error occurred during validation: {str(e)}"
         logger.error(error_message)
-        return False, None
+        return False, None, {}
 
 
 def convert_bool_type_to_object(data_df: pd.DataFrame, column_info: dict, logger: NFCLogger):
@@ -123,15 +138,20 @@ def convert_data_to_given_type(data_df: pd.DataFrame, column_info: dict, logger:
     Converts each dataframe column to its type specified in computation parameters. If
     ignore_subjects_with_missing_data is true, then the subjects with missing data will be ignored, otherwise
     it gives errors.
+
+    Returns:
+        (data_df, dropped_subjects) where dropped_subjects is a list of index labels
+        that were removed due to invalid or missing covariate values.
     """
     expected_column_names = column_info.keys()
+    dropped_subjects = []
 
     all_rows_to_ignore = _validate_data_datatypes(data_df, column_info, logger)
     if len(all_rows_to_ignore) > 0:
         if ignore_subjects_with_missing_data:
             logger.info(f'-- Ignored following rows with incorrect column values: {str(all_rows_to_ignore)}')
-            #data_df.drop(data_df.index[all_rows_to_ignore], inplace=True)
             data_df.drop(index=all_rows_to_ignore, inplace=True)
+            dropped_subjects.extend(all_rows_to_ignore)
         else:
             err_msg = (f'Following rows have empty or invalid entries for columns. Either choose to ignore these rows '
                        f'or correct the data and try again. See log file for details: {str(all_rows_to_ignore)}')
@@ -160,16 +180,17 @@ def convert_data_to_given_type(data_df: pd.DataFrame, column_info: dict, logger:
                 logger.error(err_msg)
                 raise Exception(err_msg)
 
-        # Check for null or NaNs in the converted data
+        # Check for null or NaNs in the converted data (use label-based drop, not positional)
         curr_rows_to_ignore = data_df[data_df.isnull().any(axis=1)].index.tolist()
         if len(curr_rows_to_ignore) > 0:
             if ignore_subjects_with_missing_data:
-                logger.info(f'-- Ignored following rows with incorrect column values: {str(all_rows_to_ignore)}')
-                data_df.drop(data_df.index[curr_rows_to_ignore], inplace=True)
+                logger.info(f'-- Ignored following rows with NaN values after type conversion: {str(curr_rows_to_ignore)}')
+                data_df.drop(index=curr_rows_to_ignore, inplace=True)
+                dropped_subjects.extend(curr_rows_to_ignore)
             else:
                 err_msg = (f'Following rows have empty or invalid entries for columns after converting to their '
                            f'respective datatypes. Either choose to ignore these rows or correct the data and'
-                           f' try again. See log file for details: {str(all_rows_to_ignore)}')
+                           f' try again. See log file for details: {str(curr_rows_to_ignore)}')
                 logger.error(err_msg)
                 raise Exception(err_msg)
 
@@ -180,7 +201,15 @@ def convert_data_to_given_type(data_df: pd.DataFrame, column_info: dict, logger:
         logger.error(error_message)
         raise (e)
 
-    return data_df
+    # Deduplicate in case a subject was flagged by both validation passes
+    seen = set()
+    unique_dropped = []
+    for s in dropped_subjects:
+        if s not in seen:
+            seen.add(s)
+            unique_dropped.append(s)
+
+    return data_df, unique_dropped
 
 
 def _validate_data_datatypes(data_df: pd.DataFrame, column_info: dict, logger: NFCLogger) -> list:

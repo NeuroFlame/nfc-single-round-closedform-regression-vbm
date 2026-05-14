@@ -16,7 +16,8 @@ This computation performs a closed (or normal) form regression using on the data
           "Threshold": 0.2,
           "VoxelSize":  4,
           "ReferenceColumns": { "site": "IA" },
-          "IgnoreSubjectsWithMissingData" : false
+          "IgnoreSubjectsWithMissingData" : false,
+          "ShareLocalStats": false
       }
    ```
 #### Settings Specification
@@ -37,6 +38,7 @@ DEFAULT_ReferenceColumns = {}
 | VoxelSize                    | int     | Number of voxels used for subsampling/downsampling                                                                                                                                 | any value >= 1            | 1       | ❌ No      |
 | ReferenceColumns             | dict    | Provide covariates with default value to be used as referencing in dummy encoding for categorical covariates. By default uses the first sorted value as per pandas dummy encoding. | dict                      | {}      |❌ No   |
 | IgnoreSubjectsWithMissingData | boolean | This parameter lets the computation owner to decide how to handle if the data has missing or empty values.                                                                         | true or false             | False   | ❌ No      |
+| ShareLocalStats               | boolean | When enabled, each site's local beta, p-value, t-value and R² maps are sent through the aggregator and broadcast to all participating sites. This allows every site's report to display per-site brain images and forest plot entries for every site rather than only its own. **Note:** enabling this means voxelwise local model outputs cross site boundaries — only enable when all sites have agreed to share their results with each other. | true or false | false | ❌ No |
 
 Below is the description of the csv file that is required along with the nifti files:
 1. **Covariates File (`covariates.csv`)**
@@ -77,9 +79,11 @@ The key steps of the algorithm include:
 
 #### Output Description
 
-- **Output files: global_stats and local stats with .png and .nii files**
-- The global_stats has only global results for all the metrics and local_stats has local results corresponding to that site. 
- 
+- `global_stats/` — global federated results for all metrics, identical across all sites.
+- `local_stats/` — local results for the site that generated the report.
+- `local_stats_<SiteName>/` — per-site local results for every participating site. Only present when `ShareLocalStats` is set to `true`.
+- `index.html` — interactive HTML report with tabbed brain image viewer (Global + per-site tabs when `ShareLocalStats` is enabled), covariate summary table, significance bar chart, R² histogram, forest plots, and omitted subjects table.
+
 The computation outputs both **site-level** and **global-level** results, which include:
 - **Coefficients**: beta values for each covariate.
 - **P-Values**: Probability values indicating significance for each covariate.
