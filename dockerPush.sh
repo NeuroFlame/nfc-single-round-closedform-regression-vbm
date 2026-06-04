@@ -3,6 +3,7 @@
 # Input parameters
 REPOSITORY="dylanrmartin/computations"            # Default repository
 COMPUTATION_HANDLE="single_round_ridge_regression" # Default computation handle
+PLATFORM="${PLATFORM:-linux/amd64}"
 
 # Get the current commit hash if not provided
 COMMIT_HASH=${1:-$(git rev-parse HEAD)}
@@ -11,8 +12,8 @@ COMMIT_HASH=${1:-$(git rev-parse HEAD)}
 IMAGE_TAG="${REPOSITORY}:${COMPUTATION_HANDLE}-${COMMIT_HASH}"
 
 # Build the image using Dockerfile-prod
-echo "Building the image with Dockerfile-prod..."
-docker build -f Dockerfile-prod -t "${COMPUTATION_HANDLE}" .
+echo "Building the image with Dockerfile-prod for ${PLATFORM}..."
+docker build --platform "${PLATFORM}" -f Dockerfile-prod -t "${COMPUTATION_HANDLE}" .
 
 # Tag the image for Docker Hub
 echo "Tagging the image as ${IMAGE_TAG}..."

@@ -1,7 +1,34 @@
 {
-    "user_ids": ["user1", "user2", "user3"],
-    "computation_parameters": "{\"testKey\":\"testValue\"}",
-    "fed_learn_port": 5000,
-    "admin_port": 5001,
-    "host_identifier": "host1"
+  "active_participants": [
+    {
+      "participantId": "user1",
+      "kind": "user",
+      "displayName": "site_boston",
+      "userId": "user1",
+      "vaultId": null
+    },
+    {
+      "participantId": "user2",
+      "kind": "user",
+      "displayName": "site_chicago",
+      "userId": "user2",
+      "vaultId": null
+    },
+    {
+      "participantId": "user3",
+      "kind": "user",
+      "displayName": "site_denver",
+      "userId": "user3",
+      "vaultId": null
+    }
+  ],
+  "user_ids": [
+    "user1",
+    "user2",
+    "user3"
+  ],
+  "computation_parameters": "{\"testKey\":\"testValue\"}",
+  "fed_learn_port": 5000,
+  "admin_port": 5001,
+  "host_identifier": "host1"
 }
