@@ -44,9 +44,21 @@ def main():
     path_run = os.path.join('/provisioning')
 
     # Extract arguments from provision input
-    users = provision_input.get('users')  # list of {id, name}
-    user_ids = [u['id'] for u in users]
-    site_id_name_map = {u['id']: u['name'] for u in users}
+    active_participants = provision_input.get('active_participants')
+    if not active_participants:
+        raise ValueError('Provision input is missing active_participants')
+
+    user_ids = provision_input.get('user_ids')
+    if not user_ids:
+        user_ids = [
+            participant['participantId']
+            for participant in active_participants
+        ]
+
+    site_id_name_map = {
+        participant['participantId']: participant['displayName']
+        for participant in active_participants
+    }
     computation_parameters_dict = json.loads(provision_input.get('computation_parameters'))
     computation_parameters_dict['site_id_name_map'] = site_id_name_map
     computation_parameters = json.dumps(computation_parameters_dict)
