@@ -8,5 +8,6 @@
     "Threshold": 0.2,
     "VoxelSize":  4,
     "ReferenceColumns": { "site": "IA" },
-    "IgnoreSubjectsWithMissingData" : false
+    "IgnoreSubjectsWithMissingData" : true,
+    "ShareLocalStats": true
 }
