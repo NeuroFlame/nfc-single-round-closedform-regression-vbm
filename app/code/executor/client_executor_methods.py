@@ -438,7 +438,11 @@ def _persist_html_from_results(results_dict, output_file_name, cache_dict=None):
     ]
     _SITE_HEX = ["#6366f1", "#14b8a6", "#f59e0b", "#ef4444", "#a855f7", "#22c55e"]
 
-    all_sites = sorted(site_id_name_map.values()) if site_id_name_map else []
+    # site_id_name_map is only populated when a run goes through NeuroFLAME's
+    # provisioning step; local/simulator runs leave it empty even though
+    # site_stats may still hold per-site data keyed by raw site id. Fall back
+    # to those keys so per-site tabs still render.
+    all_sites = sorted(set(site_id_name_map.values()) | set(results_dict.get("site_stats", {}).keys()))
     solid_map = {s: _SITE_COLORS_SOLID[i % len(_SITE_COLORS_SOLID)] for i, s in enumerate(all_sites)}
     hex_map   = {s: _SITE_HEX[i % len(_SITE_HEX)]                   for i, s in enumerate(all_sites)}
 
