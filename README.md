@@ -86,7 +86,7 @@ The key steps of the algorithm include:
 
 The computation outputs both **site-level** and **global-level** results, which include:
 - **Coefficients**: beta values for each covariate.
-- **P-Values**: Probability values indicating significance for each covariate.
+- **Signed Significance**: `-log10(p-value)` maps signed by the direction of the t-value, indicating significance for each covariate.
 - **R-Squared**: The proportion of variance explained by the model for each covariate.
 
 

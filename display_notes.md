@@ -91,12 +91,12 @@ The key steps of the algorithm include:
 
 *   `local_stats_<SiteName>/` — per-site local results for every participating site. Only present when `ShareLocalStats` is set to `true`.
 
-*   `index.html` — interactive HTML report with tabbed brain image viewer (Global / All Local / per-site tabs when `ShareLocalStats` is enabled), covariate summary table, significance bar chart, R² histogram, forest plots, and omitted subjects table.
+*   `index.html` — interactive HTML report with tabbed brain image viewer (Global + per-site tabs when `ShareLocalStats` is enabled), covariate summary table, significance bar chart, R² histogram, forest plots, and omitted subjects table.
 
 The computation outputs both **site-level** and **global-level** results, which include:
 
 *   **Coefficients**: beta values for each covariate.
     
-*   **P-Values**: Probability values indicating significance for each covariate.
+*   **Signed Significance**: `-log10(p-value)` maps signed by the direction of the t-value, indicating significance for each covariate.
     
 *   **R-Squared**: The proportion of variance explained by the model for each covariate.

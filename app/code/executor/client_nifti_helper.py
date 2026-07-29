@@ -87,7 +87,7 @@ def print_beta_images(cache_dict, cache_dir, output_dir, avg_beta_vector, covar_
 
 
 def print_pvals(cache_dict, cache_dir, output_dir, ps_global, ts_global, covar_labels):
-    """Print regression coefficients' p-values as nifti files."""
+    """Print regression coefficients' signed significance (-log10(p) * sign(t)) as nifti files."""
     p_df = pd.DataFrame(ps_global, columns=covar_labels)
     t_df = pd.DataFrame(ts_global, columns=covar_labels)
 
@@ -102,7 +102,7 @@ def print_pvals(cache_dict, cache_dir, output_dir, ps_global, ts_global, covar_l
                 -1 * np.log10(p_df[column]) * np.sign(t_df[column])
         )
 
-        image_string = "pval_" + str(column)
+        image_string = "signed_significance_" + str(column)
 
         clipped_img = nib.Nifti1Image(new_data, mask.affine, mask.header)
         output_file = os.path.join(output_dir, image_string)
