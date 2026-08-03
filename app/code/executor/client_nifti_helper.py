@@ -81,9 +81,11 @@ def print_beta_images(cache_dict, cache_dir, output_dir, avg_beta_vector, covar_
 
         nib.save(clipped_img, output_file + ".nii")
 
-        plotting.plot_stat_map(
-            clipped_img, output_file=output_file, display_mode="ortho", colorbar=True
+        display = plotting.plot_stat_map(
+            clipped_img, display_mode="ortho", colorbar=True
         )
+        display.savefig(output_file, dpi=300)
+        display.close()
 
 
 def print_pvals(cache_dict, cache_dir, output_dir, ps_global, ts_global, covar_labels):
@@ -109,9 +111,11 @@ def print_pvals(cache_dict, cache_dir, output_dir, ps_global, ts_global, covar_l
 
         nib.save(clipped_img, output_file + ".nii")
 
-        plotting.plot_stat_map(
-            clipped_img, output_file=output_file, display_mode="ortho", colorbar=True
+        display = plotting.plot_stat_map(
+            clipped_img, display_mode="ortho", colorbar=True
         )
+        display.savefig(output_file, dpi=300)
+        display.close()
 
 
 def print_r2_image(cache_dict, cache_dir, output_dir, beta_df):
@@ -131,6 +135,8 @@ def print_r2_image(cache_dict, cache_dir, output_dir, beta_df):
 
     nib.save(clipped_img, output_file + ".nii")
 
-    plotting.plot_stat_map(
-        clipped_img, output_file=output_file, display_mode="ortho", colorbar=True
+    display = plotting.plot_stat_map(
+        clipped_img, display_mode="ortho", colorbar=True
     )
+    display.savefig(output_file, dpi=300)
+    display.close()
