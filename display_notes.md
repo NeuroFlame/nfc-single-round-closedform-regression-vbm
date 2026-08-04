@@ -16,7 +16,8 @@ This computation performs a closed (or normal) form regression using on the data
        "VoxelSize":  4,
        "ReferenceColumns": { "site": "IA" },
        "IgnoreSubjectsWithMissingData" : false,
-       "ShareLocalStats": false
+       "ShareLocalStats": false,
+       "OutputImageDPI": 144
    }
 ```
 
@@ -31,6 +32,7 @@ This computation performs a closed (or normal) form regression using on the data
 | `ReferenceColumns` | `dict` | Provide covariates with default value to be used as referencing in dummy encoding for categorical covariates. By default uses the first sorted value as per pandas dummy encoding. | dict | {} | ❌ false |
 | `IgnoreSubjectsWithMissingData` | `boolean` | This parameter lets the computation owner to decide how to handle if the data has missing or empty values. | true or false | false | ❌ false |
 | `ShareLocalStats` | `boolean` | When enabled, each site's local beta, p-value, t-value and R² maps are sent through the aggregator and broadcast to all participating sites. This allows every site's report to display per-site brain images and forest plot entries for every site rather than only its own. **Note:** enabling this means voxelwise local model outputs cross site boundaries — only enable when all sites have agreed to share their results with each other. | true or false | false | ❌ false |
+| `OutputImageDPI` | `int` | Resolution (dots per inch) of the rendered brain map PNGs. Higher values produce sharper, larger images at the cost of longer render time per image — this cost multiplies with smaller `VoxelSize` and with the number of sites when `ShareLocalStats` is enabled. | any value > 0 | 144 | ❌ false |
 
 ### Input Description
 

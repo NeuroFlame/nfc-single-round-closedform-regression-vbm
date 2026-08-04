@@ -8,6 +8,13 @@ import pandas as pd
 from nilearn import plotting
 from nilearn.image import resample_to_img
 
+from . import client_constants
+
+
+def _get_image_dpi(cache_dict):
+    computation_parameters = cache_dict.get("computation_parameters", {})
+    return computation_parameters.get("OutputImageDPI", client_constants.DEFAULT_OutputImageDPI)
+
 
 def average_nifti(covariates_X, data_path, transfer_dir: str):
     """Reads in all the nifti images and calculates their average"""
@@ -70,6 +77,8 @@ def print_beta_images(cache_dict, cache_dir, output_dir, avg_beta_vector, covar_
     except FileNotFoundError:
         raise Exception(f"Cannot find mask file at: {cache_dict['mask_file_name']}")
 
+    dpi = _get_image_dpi(cache_dict)
+
     for column in beta_df:
         new_data = np.zeros(mask.shape)
         new_data[mask.get_fdata() > 0] = beta_df[column]
@@ -84,7 +93,7 @@ def print_beta_images(cache_dict, cache_dir, output_dir, avg_beta_vector, covar_
         display = plotting.plot_stat_map(
             clipped_img, display_mode="ortho", colorbar=True
         )
-        display.savefig(output_file, dpi=300)
+        display.savefig(output_file, dpi=dpi)
         display.close()
 
 
@@ -97,6 +106,8 @@ def print_pvals(cache_dict, cache_dir, output_dir, ps_global, ts_global, covar_l
         mask = nib.load(os.path.join(cache_dir, cache_dict['mask_file_name']))
     except FileNotFoundError:
         raise Exception(f"Cannot find mask file at: {cache_dict['mask_file_name']}")
+
+    dpi = _get_image_dpi(cache_dict)
 
     for column in p_df:
         new_data = np.zeros(mask.shape)
@@ -114,7 +125,7 @@ def print_pvals(cache_dict, cache_dir, output_dir, ps_global, ts_global, covar_l
         display = plotting.plot_stat_map(
             clipped_img, display_mode="ortho", colorbar=True
         )
-        display.savefig(output_file, dpi=300)
+        display.savefig(output_file, dpi=dpi)
         display.close()
 
 
@@ -138,5 +149,5 @@ def print_r2_image(cache_dict, cache_dir, output_dir, beta_df):
     display = plotting.plot_stat_map(
         clipped_img, display_mode="ortho", colorbar=True
     )
-    display.savefig(output_file, dpi=300)
+    display.savefig(output_file, dpi=_get_image_dpi(cache_dict))
     display.close()
