@@ -16,8 +16,7 @@ This computation performs a closed (or normal) form regression using on the data
        "VoxelSize":  4,
        "ReferenceColumns": { "site": "IA" },
        "IgnoreSubjectsWithMissingData" : false,
-       "ShareLocalStats": false,
-       "OutputImageDPI": 144
+       "ShareLocalStats": false
    }
 ```
 
@@ -32,7 +31,6 @@ This computation performs a closed (or normal) form regression using on the data
 | `ReferenceColumns` | `dict` | Provide covariates with default value to be used as referencing in dummy encoding for categorical covariates. By default uses the first sorted value as per pandas dummy encoding. | dict | {} | ❌ false |
 | `IgnoreSubjectsWithMissingData` | `boolean` | This parameter lets the computation owner to decide how to handle if the data has missing or empty values. | true or false | false | ❌ false |
 | `ShareLocalStats` | `boolean` | When enabled, each site's local beta, p-value, t-value and R² maps are sent through the aggregator and broadcast to all participating sites. This allows every site's report to display per-site brain images and forest plot entries for every site rather than only its own. **Note:** enabling this means voxelwise local model outputs cross site boundaries — only enable when all sites have agreed to share their results with each other. | true or false | false | ❌ false |
-| `OutputImageDPI` | `int` | Resolution (dots per inch) of the rendered brain map PNGs. Higher values produce sharper, larger images at the cost of longer render time per image — this cost multiplies with smaller `VoxelSize` and with the number of sites when `ShareLocalStats` is enabled. | any value > 0 | 144 | ❌ false |
 
 ### Input Description
 
@@ -102,3 +100,7 @@ The computation outputs both **site-level** and **global-level** results, which 
 *   **Signed Significance**: `-log10(p-value)` maps signed by the direction of the t-value, indicating significance for each covariate.
     
 *   **R-Squared**: The proportion of variance explained by the model for each covariate.
+
+Brain map PNGs render at a fixed 1200x427px — this isn't user-configurable, since a higher render resolution multiplies matplotlib's per-image memory footprint and has caused OOM failures in production when combined with fine `VoxelSize` and `ShareLocalStats`. The saved PNGs are tagged at 300 dpi (metadata only, no resampling), so they print cleanly at 4in wide out of the box — no extra step needed for a standard inline figure.
+
+For a larger print (e.g. a full-page figure), re-render the desired image from its accompanying `.nii` file at a size chosen for that specific figure, outside the federated pipeline.

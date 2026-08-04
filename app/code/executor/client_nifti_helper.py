@@ -2,18 +2,41 @@ import os
 
 import matplotlib
 matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 import pandas as pd
 from nilearn import plotting
 from nilearn.image import resample_to_img
+from PIL import Image
 
-from . import client_constants
+# Fixed at 144 dpi -- higher dpi multiplies matplotlib's raster buffer size
+# per image and has caused OOM kills in production when combined with fine
+# VoxelSize and ShareLocalStats' per-site image fan-out. Not exposed as a
+# computation parameter so it can't be reintroduced by accident.
+_IMAGE_DPI = 144
+
+# Figure size (inches) for ortho stat-map plots. At 144 dpi this yields
+# ~1200x427px, which prints at 4.0in wide once retagged to _PUBLICATION_DPI
+# below -- pick this before touching _IMAGE_DPI if you need a different
+# publication print size, since raising render dpi risks the OOM this
+# was tuned to avoid.
+_FIGSIZE_INCHES = (8.34, 2.97)
+
+# DPI metadata written to the saved PNG after render. This does not resample
+# pixel data -- it only retags how the existing pixels are meant to print,
+# so it's free (no added render time or memory).
+_PUBLICATION_DPI = 300
 
 
-def _get_image_dpi(cache_dict):
-    computation_parameters = cache_dict.get("computation_parameters", {})
-    return computation_parameters.get("OutputImageDPI", client_constants.DEFAULT_OutputImageDPI)
+def _new_figure():
+    return plt.figure(figsize=_FIGSIZE_INCHES)
+
+
+def _relabel_dpi(png_path):
+    """Retag a PNG's DPI metadata to _PUBLICATION_DPI without resampling pixels."""
+    with Image.open(png_path) as im:
+        im.save(png_path, dpi=(_PUBLICATION_DPI, _PUBLICATION_DPI))
 
 
 def average_nifti(covariates_X, data_path, transfer_dir: str):
@@ -77,8 +100,6 @@ def print_beta_images(cache_dict, cache_dir, output_dir, avg_beta_vector, covar_
     except FileNotFoundError:
         raise Exception(f"Cannot find mask file at: {cache_dict['mask_file_name']}")
 
-    dpi = _get_image_dpi(cache_dict)
-
     for column in beta_df:
         new_data = np.zeros(mask.shape)
         new_data[mask.get_fdata() > 0] = beta_df[column]
@@ -91,10 +112,11 @@ def print_beta_images(cache_dict, cache_dir, output_dir, avg_beta_vector, covar_
         nib.save(clipped_img, output_file + ".nii")
 
         display = plotting.plot_stat_map(
-            clipped_img, display_mode="ortho", colorbar=True
+            clipped_img, display_mode="ortho", colorbar=True, figure=_new_figure()
         )
-        display.savefig(output_file, dpi=dpi)
+        display.savefig(output_file, dpi=_IMAGE_DPI)
         display.close()
+        _relabel_dpi(output_file + ".png")
 
 
 def print_pvals(cache_dict, cache_dir, output_dir, ps_global, ts_global, covar_labels):
@@ -106,8 +128,6 @@ def print_pvals(cache_dict, cache_dir, output_dir, ps_global, ts_global, covar_l
         mask = nib.load(os.path.join(cache_dir, cache_dict['mask_file_name']))
     except FileNotFoundError:
         raise Exception(f"Cannot find mask file at: {cache_dict['mask_file_name']}")
-
-    dpi = _get_image_dpi(cache_dict)
 
     for column in p_df:
         new_data = np.zeros(mask.shape)
@@ -123,10 +143,11 @@ def print_pvals(cache_dict, cache_dir, output_dir, ps_global, ts_global, covar_l
         nib.save(clipped_img, output_file + ".nii")
 
         display = plotting.plot_stat_map(
-            clipped_img, display_mode="ortho", colorbar=True
+            clipped_img, display_mode="ortho", colorbar=True, figure=_new_figure()
         )
-        display.savefig(output_file, dpi=dpi)
+        display.savefig(output_file, dpi=_IMAGE_DPI)
         display.close()
+        _relabel_dpi(output_file + ".png")
 
 
 def print_r2_image(cache_dict, cache_dir, output_dir, beta_df):
@@ -147,7 +168,8 @@ def print_r2_image(cache_dict, cache_dir, output_dir, beta_df):
     nib.save(clipped_img, output_file + ".nii")
 
     display = plotting.plot_stat_map(
-        clipped_img, display_mode="ortho", colorbar=True
+        clipped_img, display_mode="ortho", colorbar=True, figure=_new_figure()
     )
-    display.savefig(output_file, dpi=_get_image_dpi(cache_dict))
+    display.savefig(output_file, dpi=_IMAGE_DPI)
     display.close()
+    _relabel_dpi(output_file + ".png")

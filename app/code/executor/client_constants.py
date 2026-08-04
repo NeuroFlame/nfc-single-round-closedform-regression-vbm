@@ -4,4 +4,3 @@ DEFAULT_VoxelSize = 1
 DEFAULT_ReferenceColumns = {}
 DEFAULT_IgnoreSubjectsWithMissingData = False
 DEFAULT_ShareLocalStats = False
-DEFAULT_OutputImageDPI = 144
