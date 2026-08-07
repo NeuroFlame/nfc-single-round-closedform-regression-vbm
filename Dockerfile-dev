@@ -1,9 +1,7 @@
-FROM python:3.8-buster
+FROM python:3.11-bookworm
 
 RUN python3 -m pip install -U pip
 RUN python3 -m pip install -U setuptools
-RUN python3 -m pip install nvflare==2.4.0
-
 WORKDIR /workspace/
 
 # Copy the requirements.txt file

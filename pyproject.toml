@@ -1,0 +1,34 @@
+[tool.ruff]
+required-version = "==0.12.5"
+target-version = "py311"
+line-length = 88
+extend-exclude = [
+    "job",
+    "poc-workspace",
+    "simulator_workspace",
+    "startupKits",
+    "test_output",
+]
+
+[tool.ruff.lint]
+select = [
+    "E4",
+    "E7",
+    "E9",
+    "F",
+    "W",
+    "I",
+    "B",
+    "D",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["D", "E402"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

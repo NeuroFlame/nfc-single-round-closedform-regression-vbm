@@ -1,5 +1,22 @@
 ### Computation Description
 
+This version runs on the NeuroFLAME computation framework with NVFlare 2.8 and
+Python 3.11. Computation-specific code is confined to `app/code/computation/`.
+
+Large NIfTI images and NumPy matrices cross workflow boundaries through the
+framework's streamed artifact API. The runtime sends only bounded metadata in
+NVFlare `Shareable` objects, uses opaque transfer identifiers, checks SHA-256
+integrity, and promotes completed files atomically. Subject NIfTI inputs never
+leave their participant.
+
+Derived averages, masks, sufficient statistics, coefficient maps, and fit
+statistics can still be sensitive. They cross only the site-to-central or
+central-to-site stage required by the historical mathematics. With
+`ShareLocalStats=true`, each participant's voxelwise local statistics are also
+broadcast to every participant; consortium approval for that disclosure remains
+the computation operator's responsibility. The complete boundary and format
+inventory is in [VBM artifact flow](docs/artifact_flow.md).
+
 #### Overview
 This computation performs a closed (or normal) form regression using on the datasets with VBM modality from multiple sites using specified covariates and dependent variables. This computation is designed to run within a federated learning environment, where each site performs a local regression analysis, and then global results are aggregated.
 
@@ -95,13 +112,14 @@ For a larger print (e.g. a full-page figure), re-render the desired image from i
 
 
 #### Running this computation
-To locally run this computation, please clone this repo and run the following:
+Run `make check`, then execute a concurrent two-site NVFlare 2.8 simulation:
 
-1. _./dockerRun.sh_ (This opens a bash terminal inside the docker container. Run the following commands inside the container terminal.)
+```bash
+./run_local_simulation.sh site1,site2
+```
 
-2. _python makeJob.py site1,site2_ 
-
-3. _nvflare simulator ./job_
+The script builds the development image for `linux/amd64`. Pass `--no-build`
+only when the current image already contains the repository's dependencies.
 
 #### Debug this computation using IDE
 To debug the code using IDE, run "debugger.py" script and have the following debug configurations:

@@ -1,2 +1,13 @@
 .DS_STORE
 *.pyc
+.venv/
+.ruff_cache/
+__pycache__/
+job/
+simulator_workspace/
+workspace/
+run_kits/
+output/
+test_output/
+.artifacts/
+*.log
