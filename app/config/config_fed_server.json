@@ -7,17 +7,21 @@
   "task_result_filters": [],
   "components": [
     {
-      "id": "srcfr_aggregator",
-      "path": "aggregator.aggregator.SRCFRAggregator",
+      "id": "aggregator",
+      "path": "runtime.aggregator.RuntimeAggregator",
+      "args": {}
+    },
+    {
+      "id": "artifact_transfer",
+      "path": "framework.artifact_transfer.ArtifactTransfer",
       "args": {}
     }
   ],
   "workflows": [
     {
-      "id": "srcfr_workflow",
-      "path": "controller.controller.SRCFRController",
-      "args": {
-      }
+      "id": "controller",
+      "path": "runtime.controller.RuntimeController",
+      "args": {}
     }
   ]
 }

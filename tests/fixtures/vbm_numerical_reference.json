@@ -1,0 +1,50 @@
+{
+  "description": "Synthetic reference calculated with the historical VBM central step-2 and step-3 implementation.",
+  "rtol": 1e-12,
+  "atol": 1e-12,
+  "sites": {
+    "site1": {
+      "xtx": [[4.0, 1.0], [1.0, 3.0]],
+      "xty": [[2.0, 4.0, 6.0], [1.0, 3.0, 5.0]],
+      "mean": [1.0, 2.0, 3.0],
+      "count": [4.0, 4.0, 4.0],
+      "sse": [2.0, 4.0, 6.0],
+      "sst": [10.0, 12.0, 15.0],
+      "var_x": [[4.0, 1.0], [1.0, 3.0]]
+    },
+    "site2": {
+      "xtx": [[3.0, 0.5], [0.5, 2.0]],
+      "xty": [[1.0, 2.0, 3.0], [2.0, 1.0, 0.0]],
+      "mean": [2.0, 4.0, 6.0],
+      "count": [3.0, 3.0, 3.0],
+      "sse": [1.0, 2.0, 3.0],
+      "sst": [5.0, 8.0, 10.0],
+      "var_x": [[3.0, 0.5], [0.5, 2.0]]
+    }
+  },
+  "expected": {
+    "avg_beta_vector": [[0.3076923076923077, 0.46153846153846145], [0.6923076923076923, 0.5384615384615383], [1.0769230769230769, 0.6153846153846153]],
+    "mean_y_global": [1.4285714285714286, 2.857142857142857, 4.285714285714286],
+    "r_squared_global": [0.8, 0.7, 0.64],
+    "MSE": [0.6, 1.2, 1.8],
+    "ts_global": [[1.016627056492257, 1.288810023399838], [1.617443742562637, 1.0632140250750883], [2.0543246665594146, 0.9921264185922459]],
+    "ps_global": [[0.35597282864146135, 0.2538705399503037], [0.16670608453433886, 0.3363149550936384], [0.09511773797322107, 0.3666904316459664]],
+    "artifact_sha256": {
+      "avg_beta_vector.npy": "3608004a3a57ac4127be34ab8110c16db1b57799e9157ec561912aa0908915b4",
+      "mean_y_global.npy": "5400bbbf113bda120af76bb1964fddc80e615c14b2b2240e796c34a5ecc553b4"
+    },
+    "global_output_names": [
+      "global_stats/beta_const.nii",
+      "global_stats/beta_const.png",
+      "global_stats/beta_age.nii",
+      "global_stats/beta_age.png",
+      "global_stats/r_squared.nii",
+      "global_stats/r_squared.png",
+      "global_stats/signed_significance_const.nii",
+      "global_stats/signed_significance_const.png",
+      "global_stats/signed_significance_age.nii",
+      "global_stats/signed_significance_age.png",
+      "index.html"
+    ]
+  }
+}

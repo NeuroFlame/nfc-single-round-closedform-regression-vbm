@@ -1,4 +1,4 @@
-FROM python:3.8-buster
+FROM python:3.11-bookworm
 
 # Upgrade pip and setuptools
 RUN python3 -m pip install -U pip
