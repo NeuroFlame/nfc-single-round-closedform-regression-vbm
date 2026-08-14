@@ -20,6 +20,7 @@ _CLIENT_RUNTIME_CLASSES = (
     "runtime.executor.RuntimeExecutor",
     "framework.artifact_transfer.ArtifactTransfer",
 )
+_SERVER_ADMIN_TIMEOUT_SECONDS = 120.0
 
 
 def create_run_kits(
@@ -71,6 +72,7 @@ def create_run_kits(
         copy_directory(
             server_startup_kit_path, os.path.join(central_node_path, "server")
         )
+        configure_server_admin_timeout(os.path.join(central_node_path, "server"))
         extend_component_allow_list(
             os.path.join(central_node_path, "server"), _SERVER_RUNTIME_CLASSES
         )
@@ -109,6 +111,23 @@ def write_computation_parameters(kit_path: str, computation_parameters: str) -> 
     with open(parameters_path, "w", encoding="utf-8") as parameters_file:
         parameters_file.write(computation_parameters)
     logger.info(f"Created computation parameters at {parameters_path}")
+
+
+def configure_server_admin_timeout(kit_path: str) -> None:
+    """Allow enough time to deploy computation jobs over participant networks."""
+    config_path = os.path.join(kit_path, "startup", "fed_server.json")
+    with open(config_path, encoding="utf-8") as config_file:
+        config = json.load(config_file)
+    servers = config.get("servers")
+    if not isinstance(servers, list) or not servers:
+        raise ValueError(f"Invalid servers list in '{config_path}'")
+    for server in servers:
+        if not isinstance(server, dict):
+            raise TypeError(f"Invalid server entry in '{config_path}'")
+        server["admin_timeout"] = _SERVER_ADMIN_TIMEOUT_SECONDS
+    with open(config_path, "w", encoding="utf-8") as config_file:
+        json.dump(config, config_file, indent=2)
+        config_file.write("\n")
 
 
 def extend_component_allow_list(kit_path: str, class_paths: tuple[str, ...]) -> None:

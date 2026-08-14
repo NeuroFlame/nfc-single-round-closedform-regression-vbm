@@ -1,6 +1,7 @@
 """Start the central NVFlare node and run its packaged computation job."""
 
 import os
+import re
 import subprocess
 
 from framework.errors import (
@@ -20,6 +21,8 @@ STARTUP_SCRIPT_PATH = "/workspace/runKit/server/startup/start.sh"
 ADMIN_DIRECTORY_PATH = "/workspace/runKit/admin"
 JOB_DIRECTORY_PATH = "/workspace/runKit/job/"
 ADMIN_USER_EMAIL = "admin@admin.com"
+_DEPLOYMENT_TIMEOUT_SUFFIX = ": no reply (deployment timeout)"
+_SAFE_PARTICIPANT_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.@-]{0,127}")
 
 
 def start_server():
@@ -48,6 +51,28 @@ def _report_runtime_failure(output_dir, error, *, stage, public_stage):
     )
 
 
+def _job_failure(job_id, job_status, job_meta):
+    """Create a useful failure without exposing arbitrary deployment replies."""
+    if job_status == RunStatus.FAILED_TO_RUN.value:
+        deploy_detail = job_meta.get(JobMetaKey.JOB_DEPLOY_DETAIL.value)
+        if isinstance(deploy_detail, list):
+            timed_out_participants = []
+            for detail in deploy_detail:
+                if not isinstance(detail, str) or not detail.endswith(
+                    _DEPLOYMENT_TIMEOUT_SUFFIX
+                ):
+                    continue
+                participant = detail[: -len(_DEPLOYMENT_TIMEOUT_SUFFIX)]
+                if _SAFE_PARTICIPANT_NAME.fullmatch(participant):
+                    timed_out_participants.append(participant)
+            if timed_out_participants:
+                participants = ", ".join(sorted(set(timed_out_participants)))
+                return RuntimeError(
+                    f"Job deployment timed out waiting for participants: {participants}"
+                )
+    return RuntimeError(f"Job {job_id} ended with status {job_status}")
+
+
 def main():
     """Submit, monitor, validate, and shut down one computation job."""
     output_dir = os.getenv("OUTPUT_DIR", "/workspace/output")
@@ -73,7 +98,7 @@ def main():
         print(f"Terminal job status: {job_status}")
         if job_status != RunStatus.FINISHED_COMPLETED.value:
             raise_for_terminal_errors(output_dir)
-            raise RuntimeError(f"Job {job_id} ended with status {job_status}")
+            raise _job_failure(job_id, job_status, job_meta)
     except BaseException as error:
         active_error = error
         _report_runtime_failure(
