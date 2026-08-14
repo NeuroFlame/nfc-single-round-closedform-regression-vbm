@@ -54,6 +54,7 @@ def generate_project_file(
                 "path": "nvflare.lighter.impl.static_file.StaticFileBuilder",
                 "args": {
                     "config_folder": "config",
+                    "scheme": "grpc",
                 },
             },
             {"path": "nvflare.lighter.impl.cert.CertBuilder"},
