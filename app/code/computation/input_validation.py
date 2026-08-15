@@ -57,10 +57,15 @@ def _select_columns_case_insensitive(
     ]
 
     if missing_columns:
-        error_message = (
-            f"{file_label} headers do not contain all expected headers. Expected at "
-            f"least {expected_columns}, but got {set(dataframe.columns)}."
+        only_covariates_are_missing = file_label == "Covariates" and all(
+            _normalize_column_name(column) != "niftifilename"
+            for column in missing_columns
         )
+        label = "covariate column" if only_covariates_are_missing else "column"
+        if len(missing_columns) == 1:
+            error_message = f"Missing required {label}: {missing_columns[0]}"
+        else:
+            error_message = f"Missing required {label}s: {', '.join(missing_columns)}"
         logger.info(error_message)
         raise ValueError(error_message)
 
@@ -188,7 +193,7 @@ def validate_and_get_inputs(
     except Exception as e:
         error_message = f"An error occurred during validation: {str(e)}"
         logger.error(error_message)
-        return False, None, {}
+        raise
 
 
 def convert_bool_type_to_object(

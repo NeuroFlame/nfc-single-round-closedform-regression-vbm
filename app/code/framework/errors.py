@@ -6,6 +6,12 @@ import traceback
 from typing import Any, Dict, List
 
 TERMINAL_ERROR_FILE_NAME = ".neuroflame_error.json"
+TERMINAL_ERROR_MAX_BYTES = 64 * 1024
+TERMINAL_ERROR_MAX_STAGE_LENGTH = 128
+TERMINAL_ERROR_MAX_SCOPE_LENGTH = 512
+TERMINAL_ERROR_MAX_TYPE_LENGTH = 256
+TERMINAL_ERROR_MAX_MESSAGE_LENGTH = 4000
+TERMINAL_ERROR_MAX_TRACEBACK_LENGTH = 12000
 SHARED_ERROR_PREFIX = "NEUROFLAME_SHARED_ERROR:"
 SHARED_ERROR_SCHEMA_VERSION = 1
 SHARED_ERROR_CODE_SITE = "participant_computation_failed"
@@ -24,6 +30,53 @@ ERROR_SCHEMA_VERSION = 1
 ERROR_ORIGIN_SITE = "site"
 ERROR_ORIGIN_CENTRAL = "central"
 _VALID_ERROR_ORIGINS = {ERROR_ORIGIN_SITE, ERROR_ORIGIN_CENTRAL}
+
+
+def _bounded_terminal_error_text(value: Any, maximum_length: int) -> str:
+    """Return trimmed marker text within the version-one field contract."""
+    return str(value).strip()[:maximum_length]
+
+
+def _serialize_terminal_error(
+    *, origin: str, stage: str, scope: str, error: Exception
+) -> str:
+    """Build a version-one marker that remains within the consumer byte limit."""
+    error_type = _bounded_terminal_error_text(
+        type(error).__name__, TERMINAL_ERROR_MAX_TYPE_LENGTH
+    )
+    message = _bounded_terminal_error_text(error, TERMINAL_ERROR_MAX_MESSAGE_LENGTH)
+    marker = {
+        "schema_version": ERROR_SCHEMA_VERSION,
+        "origin": origin,
+        "stage": _bounded_terminal_error_text(stage, TERMINAL_ERROR_MAX_STAGE_LENGTH),
+        "scope": _bounded_terminal_error_text(scope, TERMINAL_ERROR_MAX_SCOPE_LENGTH),
+        "error_type": error_type,
+        "message": message or error_type,
+        "traceback": _bounded_terminal_error_text(
+            traceback.format_exc(), TERMINAL_ERROR_MAX_TRACEBACK_LENGTH
+        ),
+    }
+
+    def serialize() -> str:
+        return json.dumps(marker, indent=2, ensure_ascii=False)
+
+    serialized = serialize()
+    if len(serialized.encode("utf-8")) <= TERMINAL_ERROR_MAX_BYTES:
+        return serialized
+
+    traceback_text = marker["traceback"]
+    low = 0
+    high = len(traceback_text)
+    while low < high:
+        midpoint = (low + high + 1) // 2
+        marker["traceback"] = traceback_text[:midpoint]
+        candidate = serialize()
+        if len(candidate.encode("utf-8")) <= TERMINAL_ERROR_MAX_BYTES:
+            low = midpoint
+        else:
+            high = midpoint - 1
+    marker["traceback"] = traceback_text[:low]
+    return serialize()
 
 
 def clear_terminal_error(output_dir: str) -> None:
@@ -79,17 +132,14 @@ def record_terminal_error(
     try:
         os.makedirs(output_dir, exist_ok=True)
         error_path = os.path.join(output_dir, TERMINAL_ERROR_FILE_NAME)
+        marker = _serialize_terminal_error(
+            origin=origin,
+            stage=stage,
+            scope=scope,
+            error=error,
+        )
         with open(error_path, "w", encoding="utf-8") as error_file:
-            json.dump(
-                {
-                    **build_error_envelope(origin, stage, scope),
-                    "error_type": type(error).__name__,
-                    "message": str(error),
-                    "traceback": traceback.format_exc(),
-                },
-                error_file,
-                indent=2,
-            )
+            error_file.write(marker)
     except Exception:
         # Error reporting must not replace the computation exception.
         pass

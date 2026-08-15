@@ -10,6 +10,7 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 from computation.input_validation import validate_and_get_inputs
+from computation.local_math import perform_client_step1_validate_inputs_and_compute_mask
 
 
 class InputHeaderCompatibilityTests(unittest.TestCase):
@@ -55,14 +56,14 @@ class InputHeaderCompatibilityTests(unittest.TestCase):
 
     def test_missing_header_fails_validation(self):
         """Reject an input that lacks a configured header."""
-        is_valid, covariates, omissions = self._validate("height")
-
-        self.assertFalse(is_valid)
-        self.assertIsNone(covariates)
-        self.assertEqual({}, omissions)
+        self.parameters = {"Covariates": {"isControl": "bool"}}
+        with self.assertRaisesRegex(
+            ValueError, "Missing required covariate column: isControl"
+        ):
+            self._validate("height")
         self.assertTrue(
             any(
-                "headers do not contain all expected headers" in str(call)
+                "Missing required covariate column: isControl" in str(call)
                 for call in self.logger.error.call_args_list
             )
         )
@@ -76,22 +77,58 @@ class InputHeaderCompatibilityTests(unittest.TestCase):
                 columns=["niftifilename", "age", " AGE "],
             ).to_csv(covariates_path, index=False)
 
-            is_valid, covariates, omissions = validate_and_get_inputs(
-                covariates_path,
-                temp_dir,
-                self.parameters,
-                self.logger,
-            )
+            with self.assertRaisesRegex(
+                ValueError, "duplicate headers after normalization"
+            ):
+                validate_and_get_inputs(
+                    covariates_path,
+                    temp_dir,
+                    self.parameters,
+                    self.logger,
+                )
 
-        self.assertFalse(is_valid)
-        self.assertIsNone(covariates)
-        self.assertEqual({}, omissions)
         self.assertTrue(
             any(
                 "duplicate headers after normalization" in str(call)
                 for call in self.logger.error.call_args_list
             )
         )
+
+    def test_all_missing_covariates_are_reported_in_configured_order(self):
+        """Report every missing covariate without requiring repeated runs."""
+        self.parameters = {
+            "Covariates": {
+                "isControl": "bool",
+                "Age": "float",
+                "Sex": "str",
+            }
+        }
+        with self.assertRaisesRegex(
+            ValueError,
+            "Missing required covariate columns: isControl, Age, Sex",
+        ):
+            self._validate("height")
+
+    def test_missing_covariate_propagates_through_computation_entrypoint(self):
+        """Preserve the actionable validation failure for the terminal marker."""
+        parameters = {"Covariates": {"isControl": "bool"}}
+        with tempfile.TemporaryDirectory() as temp_dir:
+            covariates_path = os.path.join(temp_dir, "covariates.csv")
+            pd.DataFrame({"niftifilename": ["subject.nii.gz"], "age": [42]}).to_csv(
+                covariates_path, index=False
+            )
+
+            with self.assertRaisesRegex(
+                ValueError, "Missing required covariate column: isControl"
+            ):
+                perform_client_step1_validate_inputs_and_compute_mask(
+                    covariates_path,
+                    temp_dir,
+                    parameters,
+                    self.logger,
+                    {},
+                    temp_dir,
+                )
 
 
 if __name__ == "__main__":
