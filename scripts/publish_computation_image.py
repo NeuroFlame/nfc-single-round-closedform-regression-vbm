@@ -108,12 +108,12 @@ def _image_tags(config: dict[str, str], version: str, revision: str) -> list[str
     ]
 
 
-def _verify_pushed_platforms(
-    tag: str, platforms: list[str], repository: Path
-) -> None:
+def _verify_pushed_platforms(tag: str, platforms: list[str], repository: Path) -> None:
     """Confirm the pushed manifest list covers every requested platform."""
     output = _run(
-        ["docker", "buildx", "imagetools", "inspect", tag], repository, capture_output=True
+        ["docker", "buildx", "imagetools", "inspect", tag],
+        repository,
+        capture_output=True,
     )
     missing = [platform for platform in platforms if platform not in output]
     if missing:
@@ -125,7 +125,9 @@ def _verify_pushed_platforms(
 def _manifest_digest(tag: str, repository: Path) -> str:
     """Return the digest of the pushed (possibly multi-platform) manifest."""
     output = _run(
-        ["docker", "buildx", "imagetools", "inspect", tag], repository, capture_output=True
+        ["docker", "buildx", "imagetools", "inspect", tag],
+        repository,
+        capture_output=True,
     )
     match = MANIFEST_DIGEST.search(output)
     if not match:
