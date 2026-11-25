@@ -216,6 +216,23 @@ def aggregate_global_metrics(
             np.asarray(output[key]), artifact_dir, f"{key}.npy"
         )
 
+    # Forward the global average beta vector to every site's final output step
+    # through the normal artifact-transfer payload, rather than relying on
+    # each site re-reading a file path it cached in local_state during an
+    # earlier step: that cache is a plain JSON file scoped to the site's own
+    # working directory, which some hosting environments don't guarantee
+    # persists unchanged between step invocations for the same site. The
+    # source file lives in a previous round's staging root, so it has to be
+    # re-saved under this round's own artifact_dir before it can be
+    # transferred -- artifact_transfer rejects sources outside the current
+    # round's root.
+    avg_beta_vector_global = binary_io.load_binary(
+        os.path.join(state["_cache_dir"], state["avg_beta_vector"])
+    )
+    payload["avg_beta_vector"] = _array_artifact(
+        np.asarray(avg_beta_vector_global), artifact_dir, "avg_beta_vector.npy"
+    )
+
     shared_stats = {}
     for site_index, (site_name, stats) in enumerate(
         output.get("shared_local_stats", {}).items()
@@ -248,6 +265,9 @@ def write_vbm_outputs(
     historical_result = {"X_labels": global_metrics["X_labels"]}
     for key in ("r_squared_global", "MSE", "ts_global", "ps_global"):
         historical_result[key] = _load_ref(global_metrics[key]).tolist()
+    historical_result["avg_beta_vector"] = _load_ref(
+        global_metrics["avg_beta_vector"]
+    ).tolist()
     if "shared_local_stats" in global_metrics:
         historical_result["shared_local_stats"] = {}
         for site_name, stats in global_metrics["shared_local_stats"].items():
