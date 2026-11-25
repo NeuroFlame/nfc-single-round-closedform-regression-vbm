@@ -10,7 +10,17 @@ WORKDIR /workspace/
 # Copy the requirements.txt file
 COPY ./requirements.txt /workspace/requirements.txt
 
-# Install dependencies from requirements.txt
+# Install dependencies from requirements.txt in smaller batches, so a single
+# resulting image layer isn't close to a gigabyte -- large layers have been
+# unreliable to push on some networks. The final full install is a no-op
+# for anything already satisfied; requirements.txt stays the single source
+# of truth for every pinned version.
+RUN grep -E '^(numpy|scipy)==' /workspace/requirements.txt | xargs python3 -m pip install
+RUN grep -E '^(pandas|scikit-learn)==' /workspace/requirements.txt | xargs python3 -m pip install
+RUN grep -E '^(numba)==' /workspace/requirements.txt | xargs python3 -m pip install
+RUN grep -E '^(matplotlib)==' /workspace/requirements.txt | xargs python3 -m pip install
+RUN grep -E '^(nilearn|statsmodels|nibabel|patsy)==' /workspace/requirements.txt | xargs python3 -m pip install
+RUN grep -E '^(nvflare|grpcio|protobuf)==' /workspace/requirements.txt | xargs python3 -m pip install
 RUN python3 -m pip install -r /workspace/requirements.txt
 
 # Copy the rest of the application files
