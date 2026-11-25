@@ -257,7 +257,7 @@ def perform_local_step4_persist_results(
     :param cache_dir: client cache dir
     :param output_dir: output directory which saves all the regression .png and .nii files
     """
-    avg_beta_vector = dt.load_binary(cache_dict["avg_beta_vector_file_name"])
+    avg_beta_vector = np.asarray(agg_result["avg_beta_vector"])
     r_squared_global = np.asarray(agg_result["r_squared_global"])
     ts_global = np.asarray(agg_result["ts_global"])
     ps_global = np.asarray(agg_result["ps_global"])
